@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class OrderBook {
 
     /** Number of top price levels to capture in snapshots for VWAP/slippage */
-    private static final int SNAPSHOT_DEPTH = 5;
+    private static final int SNAPSHOT_DEPTH = 20;
 
     private final String exchange;
     private final String symbol;

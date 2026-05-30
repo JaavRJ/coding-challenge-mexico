@@ -83,6 +83,24 @@ public class WalletManager {
         return true;
     }
 
+    /**
+     * Execute a simulated triangular trade on a single exchange.
+     * @return true if trade was executed successfully
+     */
+    public boolean executeTriangularTrade(com.nexustrade.model.TriangularOpportunity opp) {
+        Wallet wallet = wallets.get(opp.exchange());
+        if (wallet == null) return false;
+
+        BigDecimal netProfit = opp.netProfit();
+        if (netProfit.compareTo(BigDecimal.ZERO) > 0) {
+            wallet.receiveUsdt(netProfit);
+            log.info("💰 Triangular Trade executed: [{}] Net={} USDT | Latency={}ms",
+                    opp.exchange(), netProfit.setScale(2, RoundingMode.HALF_UP), opp.decisionLatencyMs());
+            return true;
+        }
+        return false;
+    }
+
     /** Check if wallets need rebalancing (asymmetry > 40%) */
     private void checkRebalance(BigDecimal btcPrice) {
         double threshold = config.getRisk().getRebalanceThresholdPct() / 100.0;

@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Activity, Wifi, WifiOff, TrendingUp, TrendingDown, Zap, AlertTriangle, RefreshCw, Shield, ShieldOff, Wallet, BarChart3, Radio, History } from 'lucide-react'
+import { Activity, Wifi, WifiOff, TrendingUp, TrendingDown, Zap, AlertTriangle, RefreshCw, Shield, ShieldOff, Wallet, BarChart3, Radio, History, Settings, Power } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 interface OrderBookData {
   exchange: string
+  symbol: string
   bestBid: string | null
   bestBidVolume: string | null
   bestAsk: string | null
@@ -20,6 +21,8 @@ interface SystemStatus { timestamp: string; uptimeSeconds: number; liveConnector
 interface WalletData { usdt: number; btc: number }
 interface EngineStats { totalEvaluations: number; totalOpportunities: number; totalExecuted: number; totalRejected: number; circuitBreakerActive: boolean; circuitBreakerPauseMs: number; wallets: Record<string, WalletData> }
 interface TradeEvent { ts: number; buyExchange: string; sellExchange: string; buyPrice: number; sellPrice: number; volume: number; grossSpread: number; feesTotal: number; netProfit: number; spreadPct: number; status: string; rejectionReason: string | null; decisionLatencyMs: number }
+interface TriangularEvent { ts: number; exchange: string; startUsdt: number; btcAmount: number; ethAmount: number; finalUsdt: number; feesTotal: number; netProfit: number; spreadPct: number; status: string; rejectionReason: string | null; decisionLatencyMs: number }
+interface LiveConfig { minProfitUsd: number; maxVolumeBtc: number; decisionTimeoutMs: number; activeExchanges: string[] }
 
 const EXCHANGE_COLORS: Record<string, string> = { BINANCE: '#F3BA2F', KRAKEN: '#5741D9', COINBASE: '#0052FF' }
 const STATE_BADGE: Record<string, { label: string; color: string }> = {
@@ -53,7 +56,7 @@ function ExchangeCard({ book, connector }: { book: OrderBookData; connector?: Co
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-          <span className="font-mono font-bold text-white tracking-wider">{book.exchange}</span>
+          <span className="font-mono font-bold text-white tracking-wider">{book.exchange} {book.symbol}</span>
         </div>
         <div className="flex items-center gap-2">
           {book.stale && <AlertTriangle size={14} className="text-yellow-500" />}
@@ -110,7 +113,7 @@ function ArbitrageMatrix({ books }: { books: OrderBookData[] }) {
         ) : pairs.map((pair, i) => {
           const pos = pair.grossSpread > 0
           return (
-            <div key={`${pair.buy.exchange}-${pair.sell.exchange}`}
+            <div key={`${pair.buy.exchange}-${pair.buy.symbol}-${pair.sell.exchange}-${pair.sell.symbol}`}
               className={`flex items-center gap-3 p-3 rounded-lg border ${pos ? 'border-emerald-900 bg-emerald-950/30' : 'border-zinc-800 bg-zinc-950'}`}>
               <span className="text-zinc-600 text-xs font-mono w-4">{i + 1}</span>
               <div className="flex items-center gap-2 flex-1">
@@ -240,9 +243,9 @@ function TradeHistoryTable({ events }: { events: TradeEvent[] }) {
                 <tr key={i} className={`border-b border-zinc-800/50 ${isExec ? 'bg-emerald-950/20' : ''}`}>
                   <td className="py-1.5 px-2 text-zinc-500">{time}</td>
                   <td className="py-1.5 px-2">
-                    <span style={{ color: EXCHANGE_COLORS[e.buyExchange] }}>{e.buyExchange.slice(0, 3)}</span>
+                    <span style={{ color: EXCHANGE_COLORS[e.buyExchange] || '#888' }}>{e.buyExchange?.slice(0, 3) ?? '???'}</span>
                     <span className="text-zinc-600">→</span>
-                    <span style={{ color: EXCHANGE_COLORS[e.sellExchange] }}>{e.sellExchange.slice(0, 3)}</span>
+                    <span style={{ color: EXCHANGE_COLORS[e.sellExchange] || '#888' }}>{e.sellExchange?.slice(0, 3) ?? '???'}</span>
                   </td>
                   <td className={`py-1.5 px-2 text-right ${e.grossSpread > 0 ? 'text-emerald-400' : 'text-zinc-600'}`}>${e.grossSpread.toFixed(2)}</td>
                   <td className="py-1.5 px-2 text-right text-red-400">${e.feesTotal.toFixed(2)}</td>
@@ -263,11 +266,174 @@ function TradeHistoryTable({ events }: { events: TradeEvent[] }) {
   )
 }
 
+function TriangularHistoryTable({ events }: { events: TriangularEvent[] }) {
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <RefreshCw size={16} className="text-purple-400" />
+        <span className="text-white font-mono font-bold text-sm tracking-wider">TRIANGULAR MATRIX</span>
+        <span className="text-zinc-600 text-xs font-mono ml-auto">USDT → BTC → ETH → USDT</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs font-mono">
+          <thead>
+            <tr className="text-zinc-500 border-b border-zinc-800">
+              <th className="text-left py-2 px-2">TIME</th>
+              <th className="text-left py-2 px-2">EXCHANGE</th>
+              <th className="text-right py-2 px-2">BTC</th>
+              <th className="text-right py-2 px-2">ETH</th>
+              <th className="text-right py-2 px-2">FEES</th>
+              <th className="text-right py-2 px-2">NET (USDT)</th>
+              <th className="text-left py-2 px-2 ml-4">STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.length === 0 ? (
+              <tr><td colSpan={7} className="text-center py-4 text-zinc-600">No triangular events yet...</td></tr>
+            ) : events.map((e, i) => {
+              const isExec = e.status === 'EXECUTED'
+              const time = new Date(e.ts).toLocaleTimeString('en-US', { hour12: false })
+              return (
+                <tr key={i} className={`border-b border-zinc-800/50 ${isExec ? 'bg-emerald-950/20' : ''}`}>
+                  <td className="py-1.5 px-2 text-zinc-500">{time}</td>
+                  <td className="py-1.5 px-2" style={{ color: EXCHANGE_COLORS[e.exchange] }}>{e.exchange}</td>
+                  <td className="py-1.5 px-2 text-right">₿{e.btcAmount.toFixed(4)}</td>
+                  <td className="py-1.5 px-2 text-right">Ξ{e.ethAmount.toFixed(4)}</td>
+                  <td className="py-1.5 px-2 text-right text-red-400">${e.feesTotal.toFixed(2)}</td>
+                  <td className={`py-1.5 px-2 text-right font-bold ${e.netProfit > 0 ? 'text-emerald-400' : 'text-red-400'}`}>${e.netProfit.toFixed(2)}</td>
+                  <td className="py-1.5 px-2 ml-4">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] ${isExec ? 'bg-emerald-900 text-emerald-300' : 'bg-zinc-800 text-zinc-500'}`}>
+                      {e.status.replace('REJECTED_', '✗ ')}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function CockpitControl({ config, onUpdate, onShock }: { config: LiveConfig | null; onUpdate: (minProfit: number, exchanges: string[]) => Promise<void>; onShock: () => Promise<void> }) {
+  const [minProfit, setMinProfit] = useState(5.0)
+  const [exchanges, setExchanges] = useState<Record<string, boolean>>({ BINANCE: true, KRAKEN: true, COINBASE: true })
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'ok' | 'error'>('idle')
+  const [shocking, setShocking] = useState(false)
+  const initialized = useRef(false)
+
+  // Sync local state from server config on first load
+  useEffect(() => {
+    if (config && !initialized.current) {
+      initialized.current = true
+      setMinProfit(config.minProfitUsd)
+      setExchanges({
+        BINANCE: config.activeExchanges.includes('BINANCE'),
+        KRAKEN: config.activeExchanges.includes('KRAKEN'),
+        COINBASE: config.activeExchanges.includes('COINBASE'),
+      })
+    }
+  }, [config])
+
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncStatus('idle')
+    try {
+      const activeList = Object.entries(exchanges).filter(([, v]) => v).map(([k]) => k)
+      await onUpdate(minProfit, activeList)
+      setSyncStatus('ok')
+      setTimeout(() => setSyncStatus('idle'), 2000)
+    } catch {
+      setSyncStatus('error')
+      setTimeout(() => setSyncStatus('idle'), 3000)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const toggleExchange = (name: string) => {
+    setExchanges(prev => ({ ...prev, [name]: !prev[name] }))
+  }
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Settings size={16} className="text-orange-400" />
+        <span className="text-white font-mono font-bold text-sm tracking-wider">COCKPIT CONTROL</span>
+        <span className="text-zinc-600 text-xs font-mono ml-auto">LIVE CONFIG</span>
+      </div>
+
+      {/* Min Profit Control */}
+      <div className="bg-zinc-950 rounded-lg p-4 mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-zinc-400 text-xs font-mono">MIN PROFIT (USD)</span>
+          <span className="text-orange-400 font-mono font-bold text-lg">${minProfit.toFixed(1)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setMinProfit(p => Math.max(0.1, +(p - 1).toFixed(1)))} className="w-8 h-8 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300 font-mono font-bold text-lg transition-colors">−</button>
+          <input
+            type="range" min="0.1" max="50" step="0.5" value={minProfit}
+            onChange={e => setMinProfit(parseFloat(e.target.value))}
+            className="flex-1 h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
+          />
+          <button onClick={() => setMinProfit(p => Math.min(50, +(p + 1).toFixed(1)))} className="w-8 h-8 bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-300 font-mono font-bold text-lg transition-colors">+</button>
+        </div>
+      </div>
+
+      {/* Exchange Toggles */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {(['BINANCE', 'KRAKEN', 'COINBASE'] as const).map(name => {
+          const active = exchanges[name]
+          const color = EXCHANGE_COLORS[name]
+          return (
+            <button key={name} onClick={() => toggleExchange(name)}
+              className={`relative rounded-lg p-3 font-mono text-xs font-bold transition-all border ${
+                active
+                  ? 'border-zinc-700 bg-zinc-950'
+                  : 'border-zinc-800 bg-zinc-900 opacity-40'
+              }`}>
+              <div className={`absolute top-0 left-0 right-0 h-0.5 rounded-t transition-opacity ${active ? 'opacity-100' : 'opacity-0'}`} style={{ backgroundColor: color }} />
+              <div className="flex items-center justify-center gap-1.5">
+                <Power size={12} className={active ? 'text-emerald-400' : 'text-zinc-600'} />
+                <span style={{ color: active ? color : '#666' }}>{name}</span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Sync Button */}
+      <button onClick={handleSync} disabled={syncing}
+        className={`w-full py-2.5 rounded-lg font-mono text-sm font-bold transition-all ${
+          syncing ? 'bg-zinc-800 text-zinc-500 cursor-wait'
+          : syncStatus === 'ok' ? 'bg-emerald-900 text-emerald-300'
+          : syncStatus === 'error' ? 'bg-red-900 text-red-300'
+          : 'bg-orange-600 hover:bg-orange-500 text-black'
+        }`}>
+        {syncing ? '⏳ SYNCING...' : syncStatus === 'ok' ? '✓ SYNCED' : syncStatus === 'error' ? '✗ FAILED' : '⚡ APPLY CHANGES'}
+      </button>
+
+      {/* Stress Test Button */}
+      <button onClick={async () => { setShocking(true); try { await onShock() } finally { setShocking(false) } }} disabled={shocking}
+        className={`w-full py-2.5 rounded-lg font-mono text-sm font-bold transition-all mt-2 border ${
+          shocking ? 'bg-red-950 text-red-400 border-red-800 cursor-wait animate-pulse'
+          : 'bg-zinc-950 text-red-500 border-red-900 hover:bg-red-950 hover:border-red-700'
+        }`}>
+        {shocking ? '💥 INJECTING...' : '⚠️ STRESS TEST (FLASH CRASH)'}
+      </button>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [orderBooks, setOrderBooks] = useState<OrderBookData[]>([])
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [engineStats, setEngineStats] = useState<EngineStats | null>(null)
+  const [liveConfig, setLiveConfig] = useState<LiveConfig | null>(null)
   const [tradeEvents, setTradeEvents] = useState<TradeEvent[]>([])
+  const [triangularEvents, setTriangularEvents] = useState<TriangularEvent[]>([])
   const [sseConnected, setSseConnected] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -286,27 +452,40 @@ export default function Dashboard() {
         setTradeEvents(prev => [event, ...prev].slice(0, 100)) // Keep last 100
       } catch {}
     })
+    sse.addEventListener('triangular_opportunity', (e) => {
+      try {
+        const event: TriangularEvent = JSON.parse(e.data)
+        setTriangularEvents(prev => [event, ...prev].slice(0, 100)) // Keep last 100
+      } catch {}
+    })
     return () => { sse.close(); sseRef.current = null }
   }, [])
 
-  // Load initial history
+  // Load initial history (events.jsonl contains both OPPORTUNITY and TRIANGULAR types)
   useEffect(() => {
-    fetch(`${API_BASE}/api/history?limit=50`)
+    fetch(`${API_BASE}/api/history?limit=100`)
       .then(r => r.json())
-      .then(data => setTradeEvents(data))
+      .then((data: Array<Record<string, any>>) => {
+        const direct = data.filter(e => e.type !== 'TRIANGULAR') as unknown as TradeEvent[]
+        const triangular = data.filter(e => e.type === 'TRIANGULAR') as unknown as TriangularEvent[]
+        setTradeEvents(direct)
+        setTriangularEvents(triangular)
+      })
       .catch(() => {})
   }, [])
 
   const fetchData = useCallback(async () => {
     try {
-      const [booksRes, statusRes, engineRes] = await Promise.all([
+      const [booksRes, statusRes, engineRes, configRes] = await Promise.all([
         fetch(`${API_BASE}/api/orderbooks`),
         fetch(`${API_BASE}/api/status`),
         fetch(`${API_BASE}/api/engine`),
+        fetch(`${API_BASE}/api/config`),
       ])
       if (booksRes.ok) { setOrderBooks(await booksRes.json()); setTickCount(c => c + 1) }
       if (statusRes.ok) setStatus(await statusRes.json())
       if (engineRes.ok) setEngineStats(await engineRes.json())
+      if (configRes.ok) setLiveConfig(await configRes.json())
       setLastUpdate(new Date())
       setError(null)
     } catch (e) { setError('Cannot reach backend. Is it running on port 8080?') }
@@ -318,7 +497,23 @@ export default function Dashboard() {
   const allConnectors = status?.connectors ?? {}
 
   // Calculate cumulative P&L from events
-  const pnl = tradeEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0)
+  const pnl = tradeEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0) +
+              triangularEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0)
+
+  const updateEngineConfig = async (minProfitUsd: number, activeExchanges: string[]) => {
+    const res = await fetch(`${API_BASE}/api/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minProfitUsd, activeExchanges })
+    })
+    if (!res.ok) throw new Error('Config sync failed')
+    setLiveConfig(await res.json())
+  }
+
+  const triggerShock = async () => {
+    const res = await fetch(`${API_BASE}/api/risk/shock`, { method: 'POST' })
+    if (!res.ok) throw new Error('Shock injection failed')
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -381,7 +576,7 @@ export default function Dashboard() {
           <h2 className="text-zinc-500 font-mono text-xs tracking-widest mb-3">ORDER BOOKS</h2>
           <div className="grid grid-cols-3 gap-4">
             {orderBooks.length > 0
-              ? orderBooks.map(book => <ExchangeCard key={book.exchange} book={book} connector={allConnectors[book.exchange]} />)
+              ? orderBooks.map(book => <ExchangeCard key={`${book.exchange}-${book.symbol}`} book={book} connector={allConnectors[book.exchange]} />)
               : ['BINANCE', 'KRAKEN', 'COINBASE'].map(name => (
                   <div key={name} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 animate-pulse">
                     <div className="h-4 bg-zinc-800 rounded w-24 mb-4" />
@@ -391,14 +586,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <EnginePanel stats={engineStats} />
           <WalletsPanel stats={engineStats} />
+          <CockpitControl config={liveConfig} onUpdate={updateEngineConfig} onShock={triggerShock} />
         </div>
 
-        <ArbitrageMatrix books={orderBooks} />
+        <ArbitrageMatrix books={orderBooks.filter(b => b.symbol === 'BTC/USDT' || !b.symbol)} />
 
-        <TradeHistoryTable events={tradeEvents} />
+        <div className="grid grid-cols-2 gap-4">
+          <TradeHistoryTable events={tradeEvents} />
+          <TriangularHistoryTable events={triangularEvents} />
+        </div>
 
         {/* Phase indicator */}
         <div className="border border-zinc-800 rounded-xl p-4">

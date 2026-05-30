@@ -57,6 +57,10 @@ public class Wallet {
         btc = btc.add(amount);
     }
 
+    public synchronized void receiveUsdt(BigDecimal amount) {
+        usdt = usdt.add(amount);
+    }
+
     public synchronized BigDecimal getUsdt() { return usdt; }
     public synchronized BigDecimal getBtc() { return btc; }
     public String getExchange() { return exchange; }

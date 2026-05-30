@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.nexustrade.model.OrderBook;
+
 /**
  * Kraken WebSocket v2 Connector for XBT/USD Order Book.
  *
@@ -44,7 +46,7 @@ public class KrakenConnector extends AbstractExchangeConnector {
     public KrakenConnector(
             @Value("${nexustrade.exchanges.kraken.ws-url}") String wsUrl,
             @Value("${nexustrade.exchanges.kraken.rest-url}") String restUrl) {
-        super("KRAKEN", wsUrl, restUrl);
+        super("KRAKEN", wsUrl, restUrl, "BTC/USDT");
     }
 
     @Override
@@ -55,12 +57,12 @@ public class KrakenConnector extends AbstractExchangeConnector {
                   "params": {
                     "channel": "book",
                     "symbol": ["BTC/USD"],
-                    "depth": 10
+                    "depth": 25
                   }
                 }
                 """;
         sendWsMessage(subscribeMsg);
-        log.info("[KRAKEN] Sent subscription for book/BTC/USD depth=10");
+        log.info("[KRAKEN] Sent subscription for book/BTC/USD depth=25");
     }
 
     @Override
@@ -84,6 +86,9 @@ public class KrakenConnector extends AbstractExchangeConnector {
         JsonNode bidsNode = data.path("bids");
         JsonNode asksNode = data.path("asks");
 
+        OrderBook orderBook = orderBooks.get("BTC/USDT");
+        if (orderBook == null) return;
+
         if ("snapshot".equals(type)) {
             // Full snapshot — replace entire order book
             if (!bidsNode.isMissingNode()) orderBook.replaceBids(parseLevels(bidsNode));
@@ -91,11 +96,12 @@ public class KrakenConnector extends AbstractExchangeConnector {
             log.info("[KRAKEN] Order book snapshot received");
         } else if ("update".equals(type)) {
             // Incremental update
-            if (!bidsNode.isMissingNode()) applyUpdates(bidsNode, true);
-            if (!asksNode.isMissingNode()) applyUpdates(asksNode, false);
+            if (!bidsNode.isMissingNode()) applyUpdates(orderBook, bidsNode, true);
+            if (!asksNode.isMissingNode()) applyUpdates(orderBook, asksNode, false);
         }
 
-        logBestPrices();
+        logBestPrices(orderBook);
+        notifyUpdate(orderBook);
     }
 
     @Override
@@ -113,9 +119,13 @@ public class KrakenConnector extends AbstractExchangeConnector {
             JsonNode bookData = entry.getValue();
             JsonNode bids = bookData.path("bids");
             JsonNode asks = bookData.path("asks");
-
-            if (!bids.isMissingNode()) orderBook.replaceBids(parseLegacyLevels(bids));
-            if (!asks.isMissingNode()) orderBook.replaceAsks(parseLegacyLevels(asks));
+            
+            OrderBook orderBook = orderBooks.get("BTC/USDT");
+            if (orderBook != null) {
+                if (!bids.isMissingNode()) orderBook.replaceBids(parseLegacyLevels(bids));
+                if (!asks.isMissingNode()) orderBook.replaceAsks(parseLegacyLevels(asks));
+                notifyUpdate(orderBook);
+            }
         });
     }
 
@@ -145,7 +155,7 @@ public class KrakenConnector extends AbstractExchangeConnector {
         return levels;
     }
 
-    private void applyUpdates(JsonNode levelsNode, boolean isBid) {
+    private void applyUpdates(OrderBook orderBook, JsonNode levelsNode, boolean isBid) {
         if (!levelsNode.isArray()) return;
         for (JsonNode level : levelsNode) {
             try {
@@ -187,7 +197,7 @@ public class KrakenConnector extends AbstractExchangeConnector {
         }
     }
 
-    private void logBestPrices() {
+    private void logBestPrices(OrderBook orderBook) {
         orderBook.bestBidPrice().ifPresent(bid ->
                 orderBook.bestAskPrice().ifPresent(ask ->
                         log.debug("[KRAKEN] Bid={} Ask={}", bid.toPlainString(), ask.toPlainString())

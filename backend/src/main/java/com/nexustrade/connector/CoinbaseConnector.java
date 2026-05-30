@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.nexustrade.model.OrderBook;
+
 /**
  * Coinbase Advanced Trade WebSocket Connector for BTC-USD.
  *
@@ -41,7 +43,7 @@ public class CoinbaseConnector extends AbstractExchangeConnector {
     public CoinbaseConnector(
             @Value("${nexustrade.exchanges.coinbase.ws-url}") String wsUrl,
             @Value("${nexustrade.exchanges.coinbase.rest-url}") String restUrl) {
-        super("COINBASE", wsUrl, restUrl);
+        super("COINBASE", wsUrl, restUrl, "BTC/USDT");
     }
 
     @Override
@@ -69,6 +71,9 @@ public class CoinbaseConnector extends AbstractExchangeConnector {
         JsonNode events = root.path("events");
         if (events.isMissingNode() || !events.isArray()) return;
 
+        OrderBook orderBook = orderBooks.get("BTC/USDT");
+        if (orderBook == null) return;
+
         for (JsonNode event : events) {
             String eventType = event.path("type").asText("");
             JsonNode updates = event.path("updates");
@@ -89,12 +94,13 @@ public class CoinbaseConnector extends AbstractExchangeConnector {
             } else if ("update".equals(eventType)) {
                 // Incremental — apply each update
                 for (JsonNode update : updates) {
-                    applyIncrementalUpdate(update);
+                    applyIncrementalUpdate(orderBook, update);
                 }
             }
         }
 
-        logBestPrices();
+        logBestPrices(orderBook);
+        notifyUpdate(orderBook);
     }
 
     @Override
@@ -113,8 +119,12 @@ public class CoinbaseConnector extends AbstractExchangeConnector {
         JsonNode bids = book.path("bids");
         JsonNode asks = book.path("asks");
 
-        if (!bids.isMissingNode()) orderBook.replaceBids(parseRestSide(bids));
-        if (!asks.isMissingNode()) orderBook.replaceAsks(parseRestSide(asks));
+        OrderBook orderBook = orderBooks.get("BTC/USDT");
+        if (orderBook != null) {
+            if (!bids.isMissingNode()) orderBook.replaceBids(parseRestSide(bids));
+            if (!asks.isMissingNode()) orderBook.replaceAsks(parseRestSide(asks));
+            notifyUpdate(orderBook);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -139,7 +149,7 @@ public class CoinbaseConnector extends AbstractExchangeConnector {
         }
     }
 
-    private void applyIncrementalUpdate(JsonNode update) {
+    private void applyIncrementalUpdate(OrderBook orderBook, JsonNode update) {
         try {
             String side = update.path("side").asText("");
             BigDecimal price = new BigDecimal(update.path("price_level").asText());
@@ -181,7 +191,7 @@ public class CoinbaseConnector extends AbstractExchangeConnector {
         }
     }
 
-    private void logBestPrices() {
+    private void logBestPrices(OrderBook orderBook) {
         orderBook.bestBidPrice().ifPresent(bid ->
                 orderBook.bestAskPrice().ifPresent(ask ->
                         log.debug("[COINBASE] Bid={} Ask={}", bid.toPlainString(), ask.toPlainString())

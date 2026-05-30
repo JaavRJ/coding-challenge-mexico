@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import com.nexustrade.model.OrderBook;
+
 /**
  * Binance WebSocket Connector for BTC/USDT Order Book.
  *
@@ -29,13 +31,15 @@ public class BinanceConnector extends AbstractExchangeConnector {
     public BinanceConnector(
             @Value("${nexustrade.exchanges.binance.ws-url}") String wsUrl,
             @Value("${nexustrade.exchanges.binance.rest-url}") String restUrl) {
-        super("BINANCE", wsUrl, restUrl);
+        super("BINANCE", wsUrl, restUrl, "BTC/USDT");
+        this.orderBooks.put("ETH/BTC", new com.nexustrade.model.OrderBook("BINANCE", "ETH/BTC"));
+        this.orderBooks.put("ETH/USDT", new com.nexustrade.model.OrderBook("BINANCE", "ETH/USDT"));
     }
 
     @Override
     protected void onWebSocketOpen() {
         // Binance depth stream subscribes automatically via URL — no message needed
-        log.info("[BINANCE] Subscribed to btcusdt@depth5@100ms");
+        log.info("[BINANCE] Subscribed to streams via URL: {}", wsUrl);
     }
 
     @Override
@@ -44,9 +48,18 @@ public class BinanceConnector extends AbstractExchangeConnector {
         if (rootOpt.isEmpty()) return;
 
         JsonNode root = rootOpt.get();
+        JsonNode dataNode = root.has("data") ? root.get("data") : root;
+        String streamName = root.has("stream") ? root.get("stream").asText() : "btcusdt";
+        
+        String symbol = "BTC/USDT";
+        if (streamName.startsWith("ethbtc")) symbol = "ETH/BTC";
+        else if (streamName.startsWith("ethusdt")) symbol = "ETH/USDT";
 
-        JsonNode bidsNode = root.path("bids");
-        JsonNode asksNode = root.path("asks");
+        OrderBook orderBook = orderBooks.get(symbol);
+        if (orderBook == null) return;
+
+        JsonNode bidsNode = dataNode.path("bids");
+        JsonNode asksNode = dataNode.path("asks");
 
         if (bidsNode.isMissingNode() || asksNode.isMissingNode()) {
             log.warn("[BINANCE] Missing bids/asks in message, skipping.");
@@ -59,12 +72,14 @@ public class BinanceConnector extends AbstractExchangeConnector {
         // Process asks — replace snapshot
         orderBook.replaceAsks(parseOrderBookSide(asksNode));
 
-        logBestPrices();
+        logBestPrices(orderBook);
+        notifyUpdate(orderBook);
     }
 
     @Override
     protected void handleRestResponse(String responseBody, long ingestNanos) {
-        // REST response has same format as WS for this endpoint
+        // REST response has same format as WS for this endpoint (without stream wrapper)
+        // By default, fallback rest URL only fetches BTCUSDT
         handleWebSocketMessage(responseBody, ingestNanos);
     }
 
@@ -101,10 +116,11 @@ public class BinanceConnector extends AbstractExchangeConnector {
         }
     }
 
-    private void logBestPrices() {
+    private void logBestPrices(OrderBook orderBook) {
         orderBook.bestBidPrice().ifPresent(bid ->
                 orderBook.bestAskPrice().ifPresent(ask ->
-                        log.debug("[BINANCE] Bid={} Ask={} Spread={}",
+                        log.debug("[BINANCE] [{}] Bid={} Ask={} Spread={}",
+                                orderBook.getSymbol(),
                                 bid.toPlainString(),
                                 ask.toPlainString(),
                                 ask.subtract(bid).toPlainString())

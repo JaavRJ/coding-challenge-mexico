@@ -38,15 +38,15 @@ nexustrade:
 
   exchanges:
     binance:
-      ws-url: "wss://stream.binance.com:9443/stream?streams=btcusdt@depth20@100ms/ethbtc@depth20@100ms/ethusdt@depth20@100ms"
-      rest-url: "https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=20"
+      ws-url: "wss://stream.binance.com:9443/ws/btcusdt@depth5@100ms"
+      rest-url: "https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=5"
       fee-maker: 0.001
       fee-taker: 0.001
       withdrawal-fee-btc: 0.0005
 
     kraken:
       ws-url: "wss://ws.kraken.com/v2"
-      rest-url: "https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=20"
+      rest-url: "https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=5"
       fee-maker: 0.0016
       fee-taker: 0.0026
       withdrawal-fee-btc: 0.0002

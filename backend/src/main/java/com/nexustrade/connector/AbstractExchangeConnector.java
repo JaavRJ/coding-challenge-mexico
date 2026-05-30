@@ -37,14 +37,14 @@ public abstract class AbstractExchangeConnector {
     protected final String exchangeName;
     protected final String wsUrl;
     protected final String restUrl;
-    protected final OrderBook orderBook;
+    protected final java.util.Map<String, OrderBook> orderBooks = new java.util.concurrent.ConcurrentHashMap<>();
 
     private final AtomicReference<ConnectorState> state =
             new AtomicReference<>(ConnectorState.INITIALIZING);
     private final AtomicInteger consecutiveWsFailures = new AtomicInteger(0);
 
     private WebSocketClient wsClient;
-    private final ScheduledExecutorService scheduler;
+    private volatile ScheduledExecutorService scheduler;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -53,14 +53,16 @@ public abstract class AbstractExchangeConnector {
     // Callback when order book updates (notifies the engine)
     private Consumer<OrderBook> onUpdateCallback;
 
-    protected AbstractExchangeConnector(String exchangeName, String wsUrl, String restUrl) {
+    protected AbstractExchangeConnector(String exchangeName, String wsUrl, String restUrl, String initialSymbol) {
         this.exchangeName = exchangeName;
         this.wsUrl = wsUrl;
         this.restUrl = restUrl;
-        this.orderBook = new OrderBook(exchangeName, "BTC/USD");
-        // Initialize scheduler here (not as field initializer) because
-        // the lambda captures exchangeName which must be assigned first.
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        this.orderBooks.put(initialSymbol, new OrderBook(exchangeName, initialSymbol));
+        this.scheduler = createScheduler();
+    }
+
+    private ScheduledExecutorService createScheduler() {
+        return Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, exchangeName + "-scheduler");
             t.setDaemon(true);
             return t;
@@ -73,6 +75,11 @@ public abstract class AbstractExchangeConnector {
 
     public void start() {
         log.info("[{}] Starting connector...", exchangeName);
+        // Reinitialize scheduler if it was shut down (restart scenario)
+        if (scheduler.isShutdown()) {
+            scheduler = createScheduler();
+        }
+        consecutiveWsFailures.set(0);
         setState(ConnectorState.CONNECTING);
         connectWebSocket(0);
     }
@@ -107,7 +114,6 @@ public abstract class AbstractExchangeConnector {
                     try {
                         long ingestNanos = System.nanoTime();
                         handleWebSocketMessage(message, ingestNanos);
-                        notifyUpdate();
                     } catch (Exception e) {
                         // STRICT: never let a bad message crash the connector
                         log.warn("[{}] Discarded malformed WS message: {}", exchangeName, e.getMessage());
@@ -184,7 +190,6 @@ public abstract class AbstractExchangeConnector {
             if (response.statusCode() == 200) {
                 long ingestNanos = System.nanoTime();
                 handleRestResponse(response.body(), ingestNanos);
-                notifyUpdate();
             } else {
                 log.warn("[{}] REST poll returned HTTP {}", exchangeName, response.statusCode());
             }
@@ -220,10 +225,10 @@ public abstract class AbstractExchangeConnector {
         }
     }
 
-    private void notifyUpdate() {
-        if (onUpdateCallback != null) {
+    protected void notifyUpdate(OrderBook book) {
+        if (onUpdateCallback != null && book != null) {
             try {
-                onUpdateCallback.accept(orderBook);
+                onUpdateCallback.accept(book);
             } catch (Exception e) {
                 log.warn("[{}] Update callback threw exception: {}", exchangeName, e.getMessage());
             }
@@ -238,7 +243,8 @@ public abstract class AbstractExchangeConnector {
     }
 
     public ConnectorState getState() { return state.get(); }
-    public OrderBook getOrderBook() { return orderBook; }
+    public OrderBook getOrderBook(String symbol) { return orderBooks.get(symbol); }
+    public java.util.List<OrderBook> getOrderBooks() { return new java.util.ArrayList<>(orderBooks.values()); }
     public String getExchangeName() { return exchangeName; }
     public int getConsecutiveFailures() { return consecutiveWsFailures.get(); }
 }

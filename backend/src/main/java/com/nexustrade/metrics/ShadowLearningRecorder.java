@@ -67,6 +67,31 @@ public class ShadowLearningRecorder {
         }
     }
 
+    public void record(com.nexustrade.model.TriangularOpportunity opp) {
+        if (writer == null) return;
+
+        try {
+            ObjectNode node = MAPPER.createObjectNode();
+            node.put("ts", opp.timestampMs());
+            node.put("type", "TRIANGULAR");
+            node.put("exchange", opp.exchange());
+            node.put("startUsdt", opp.startUsdt().doubleValue());
+            node.put("btcAmount", opp.btcAmount().doubleValue());
+            node.put("ethAmount", opp.ethAmount().doubleValue());
+            node.put("finalUsdt", opp.finalUsdt().doubleValue());
+            node.put("feesTotal", opp.feesTotal().doubleValue());
+            node.put("netProfit", opp.netProfit().doubleValue());
+            node.put("spreadPct", opp.spreadPct().doubleValue());
+            node.put("status", opp.status().name());
+            node.put("rejectionReason", opp.rejectionReason());
+            node.put("decisionLatencyMs", opp.decisionLatencyMs());
+
+            writer.println(MAPPER.writeValueAsString(node));
+        } catch (Exception e) {
+            log.warn("Failed to write event: {}", e.getMessage());
+        }
+    }
+
     @PreDestroy
     public void close() {
         if (writer != null) {

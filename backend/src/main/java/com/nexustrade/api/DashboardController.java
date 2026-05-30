@@ -67,6 +67,25 @@ public class DashboardController {
         }
     }
 
+    public void broadcastTriangular(com.nexustrade.model.TriangularOpportunity opp) {
+        if (emitters.isEmpty()) return;
+
+        try {
+            String json = MAPPER.writeValueAsString(opp);
+            for (SseEmitter emitter : emitters) {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("triangular_opportunity")
+                            .data(json));
+                } catch (IOException e) {
+                    emitters.remove(emitter);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to serialize triangular opportunity: {}", e.getMessage());
+        }
+    }
+
     public int getConnectedClients() {
         return emitters.size();
     }

@@ -48,10 +48,10 @@ public class EngineConfig {
     }
 
     public static class Engine {
-        private double minProfitUsd = 5.0;
-        private double maxVolumeBtc = 0.1;
-        private long decisionTimeoutMs = 200;
-        private long evaluationIntervalMs = 50;
+        private volatile double minProfitUsd = 5.0;
+        private volatile double maxVolumeBtc = 0.1;
+        private volatile long decisionTimeoutMs = 200;
+        private volatile long evaluationIntervalMs = 50;
 
         public double getMinProfitUsd() { return minProfitUsd; }
         public void setMinProfitUsd(double v) { this.minProfitUsd = v; }

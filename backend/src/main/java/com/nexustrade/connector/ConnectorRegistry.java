@@ -66,15 +66,19 @@ public class ConnectorRegistry {
     }
 
     public Optional<OrderBook> getOrderBook(String exchangeName) {
+        return getOrderBook(exchangeName, "BTC/USDT");
+    }
+
+    public Optional<OrderBook> getOrderBook(String exchangeName, String symbol) {
         return connectors.stream()
                 .filter(c -> c.getExchangeName().equalsIgnoreCase(exchangeName))
                 .findFirst()
-                .map(AbstractExchangeConnector::getOrderBook);
+                .map(c -> c.getOrderBook(symbol));
     }
 
     public List<OrderBook> getAllOrderBooks() {
         return connectors.stream()
-                .map(AbstractExchangeConnector::getOrderBook)
+                .flatMap(c -> c.getOrderBooks().stream())
                 .collect(Collectors.toList());
     }
 
@@ -92,5 +96,50 @@ public class ConnectorRegistry {
 
     public long getLiveCount() {
         return connectors.stream().filter(c -> c.getState() == ConnectorState.LIVE).count();
+    }
+
+    /**
+     * Stops a specific connector by exchange name and clears its order books.
+     */
+    public void stopConnector(String exchangeName) {
+        connectors.stream()
+                .filter(c -> c.getExchangeName().equalsIgnoreCase(exchangeName))
+                .findFirst()
+                .ifPresent(c -> {
+                    log.info("⏹ Stopping connector: {}", exchangeName);
+                    c.stop();
+                    c.getOrderBooks().forEach(OrderBook::clear);
+                });
+    }
+
+    /**
+     * Starts a previously stopped connector in a new virtual thread.
+     */
+    public void startConnector(String exchangeName) {
+        connectors.stream()
+                .filter(c -> c.getExchangeName().equalsIgnoreCase(exchangeName))
+                .filter(c -> c.getState() == ConnectorState.DEAD || c.getState() == ConnectorState.INITIALIZING)
+                .findFirst()
+                .ifPresent(c -> {
+                    log.info("▶ Starting connector: {}", exchangeName);
+                    if (globalUpdateCallback != null) {
+                        c.setOnUpdateCallback(globalUpdateCallback);
+                    }
+                    executor.submit(() -> {
+                        try { c.start(); } catch (Exception e) {
+                            log.error("[{}] Fatal connector error: {}", exchangeName, e.getMessage(), e);
+                        }
+                    });
+                });
+    }
+
+    /**
+     * Returns list of exchange names that are not DEAD.
+     */
+    public List<String> getActiveExchanges() {
+        return connectors.stream()
+                .filter(c -> c.getState() != ConnectorState.DEAD)
+                .map(AbstractExchangeConnector::getExchangeName)
+                .collect(Collectors.toList());
     }
 }

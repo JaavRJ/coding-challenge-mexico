@@ -39,6 +39,7 @@ public class ArbitrageEngine {
     private final ShadowLearningRecorder recorder;
     private final LatencyTracker latencyTracker;
     private final DashboardController dashboardController;
+    private final TriangularSpreadCalculator triangularCalculator;
 
     private final AtomicLong totalEvaluations = new AtomicLong(0);
     private final AtomicLong totalOpportunities = new AtomicLong(0);
@@ -55,7 +56,8 @@ public class ArbitrageEngine {
                            CircuitBreaker circuitBreaker,
                            ShadowLearningRecorder recorder,
                            LatencyTracker latencyTracker,
-                           DashboardController dashboardController) {
+                           DashboardController dashboardController,
+                           TriangularSpreadCalculator triangularCalculator) {
         this.registry = registry;
         this.spreadCalculator = spreadCalculator;
         this.config = config;
@@ -64,6 +66,7 @@ public class ArbitrageEngine {
         this.recorder = recorder;
         this.latencyTracker = latencyTracker;
         this.dashboardController = dashboardController;
+        this.triangularCalculator = triangularCalculator;
     }
 
     @PostConstruct
@@ -116,12 +119,14 @@ public class ArbitrageEngine {
         long evalCount = totalEvaluations.incrementAndGet();
         List<ArbitrageOpportunity> opportunities = new ArrayList<>();
 
+        // DIRECT ARBITRAGE (Inter-Exchange)
         for (int i = 0; i < snapshots.size(); i++) {
             for (int j = 0; j < snapshots.size(); j++) {
                 if (i == j) continue;
 
                 OrderBookSnapshot buyOn = snapshots.get(i);
                 OrderBookSnapshot sellOn = snapshots.get(j);
+                if (!buyOn.symbol().equals("BTC/USDT") || !sellOn.symbol().equals("BTC/USDT")) continue;
 
                 if (sellOn.bestBidPrice().compareTo(buyOn.bestAskPrice()) <= 0) continue;
 
@@ -130,6 +135,50 @@ public class ArbitrageEngine {
                 oppOpt.ifPresent(opportunities::add);
             }
         }
+
+        // TRIANGULAR ARBITRAGE (Intra-Exchange on Binance)
+        Optional<com.nexustrade.model.OrderBook> binanceBtcUsdt = registry.getOrderBook("BINANCE", "BTC/USDT");
+        Optional<com.nexustrade.model.OrderBook> binanceEthBtc = registry.getOrderBook("BINANCE", "ETH/BTC");
+        Optional<com.nexustrade.model.OrderBook> binanceEthUsdt = registry.getOrderBook("BINANCE", "ETH/USDT");
+
+        if (binanceBtcUsdt.isPresent() && binanceEthBtc.isPresent() && binanceEthUsdt.isPresent()) {
+            Optional<com.nexustrade.model.OrderBookSnapshot> btcUsdtSnap = binanceBtcUsdt.get().snapshot();
+            Optional<com.nexustrade.model.OrderBookSnapshot> ethBtcSnap = binanceEthBtc.get().snapshot();
+            Optional<com.nexustrade.model.OrderBookSnapshot> ethUsdtSnap = binanceEthUsdt.get().snapshot();
+
+            if (btcUsdtSnap.isPresent() && ethBtcSnap.isPresent() && ethUsdtSnap.isPresent()) {
+                Optional<com.nexustrade.model.TriangularOpportunity> triOpt = triangularCalculator.calculate(
+                        btcUsdtSnap.get(),
+                        ethBtcSnap.get(),
+                        ethUsdtSnap.get()
+                );
+                
+                triOpt.ifPresent(tri -> {
+                com.nexustrade.model.TriangularOpportunity finalTri = tri;
+                if (tri.isProfitable() && circuitBreaker.isActive()) {
+                    finalTri = tri.withStatus(com.nexustrade.model.TradeStatus.REJECTED_CIRCUIT_BREAKER, "Circuit breaker is active");
+                }
+                
+                latencyTracker.recordDecisionLatency(finalTri.decisionLatencyMs());
+                recorder.record(finalTri);
+                dashboardController.broadcastTriangular(finalTri);
+                
+                if (finalTri.isProfitable()) {
+                    boolean traded = walletManager.executeTriangularTrade(finalTri);
+                    if (traded) {
+                        totalExecuted.incrementAndGet();
+                        circuitBreaker.recordProfit();
+                        log.info("[ArbitrageEngine] {}", finalTri);
+                    } else {
+                        totalRejected.incrementAndGet();
+                        circuitBreaker.recordLoss();
+                    }
+                } else {
+                    totalRejected.incrementAndGet();
+                }
+            });
+            } // Close the inner if (btcUsdtSnap.isPresent() ...)
+        } // Close the outer if (binanceBtcUsdt.isPresent() ...)
 
         for (ArbitrageOpportunity originalOpp : opportunities) {
             totalOpportunities.incrementAndGet();
@@ -162,9 +211,6 @@ public class ArbitrageEngine {
                 }
             } else {
                 totalRejected.incrementAndGet();
-                if (finalOpp.netProfit().doubleValue() < 0 && finalOpp.status() != TradeStatus.REJECTED_CIRCUIT_BREAKER) {
-                    circuitBreaker.recordLoss();
-                }
             }
         }
 

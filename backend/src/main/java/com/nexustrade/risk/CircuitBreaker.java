@@ -54,8 +54,10 @@ public class CircuitBreaker {
         if (Math.abs(drawdownPct) > maxDrawdown) {
             long pauseMs = config.getRisk().getCircuitBreakerPauseSeconds() * 1000L;
             pauseUntilMs.set(System.currentTimeMillis() + pauseMs);
-            log.warn("🛑 CIRCUIT BREAKER (DRAWDOWN): {:.2f}% exceeds max {:.2f}%. Pausing {}s",
-                    drawdownPct, maxDrawdown, config.getRisk().getCircuitBreakerPauseSeconds());
+            log.warn("🛑 CIRCUIT BREAKER (DRAWDOWN): {}% exceeds max {}%. Pausing {}s",
+                    String.format("%.2f", drawdownPct), 
+                    String.format("%.2f", maxDrawdown), 
+                    config.getRisk().getCircuitBreakerPauseSeconds());
         }
     }
 

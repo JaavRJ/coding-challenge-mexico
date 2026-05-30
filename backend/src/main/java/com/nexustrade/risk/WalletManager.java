@@ -41,8 +41,8 @@ public class WalletManager {
             wallets.put(ex, new Wallet(ex, usdt, btc));
         }
 
-        // Estimate initial total (using a placeholder BTC price, will be updated)
-        initialTotalUsdt = BigDecimal.valueOf(usdt * EXCHANGES.length + btc * EXCHANGES.length * 70000);
+        // Will be updated dynamically on first evaluation
+        initialTotalUsdt = null;
 
         log.info("💰 WalletManager initialized: {} USDT + {} BTC per exchange ({})",
                 usdt, btc, EXCHANGES.length);
@@ -101,8 +101,8 @@ public class WalletManager {
             BigDecimal ratio = diff.divide(totalBtc, 8, RoundingMode.HALF_UP);
 
             if (ratio.doubleValue() > threshold) {
-                log.info("🔄 Rebalancing triggered for {} (asymmetry {:.1f}%)",
-                        w.getExchange(), ratio.doubleValue() * 100);
+                log.info("🔄 Rebalancing triggered for {} (asymmetry {}%)",
+                        w.getExchange(), String.format("%.1f", ratio.doubleValue() * 100));
                 rebalance(avgBtc);
                 return;
             }
@@ -132,6 +132,11 @@ public class WalletManager {
         for (Wallet w : wallets.values()) {
             currentTotal = currentTotal.add(w.totalValueUsdt(btcPrice));
         }
+        
+        if (initialTotalUsdt == null) {
+            initialTotalUsdt = currentTotal;
+        }
+        
         return currentTotal.subtract(initialTotalUsdt);
     }
 

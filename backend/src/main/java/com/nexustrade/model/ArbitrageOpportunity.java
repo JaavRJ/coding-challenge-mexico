@@ -59,6 +59,11 @@ public record ArbitrageOpportunity(
         return status == TradeStatus.EXECUTED;
     }
 
+    public ArbitrageOpportunity withStatus(TradeStatus newStatus, String newReason) {
+        return new ArbitrageOpportunity(timestampMs, buyExchange, sellExchange, buyPrice, sellPrice,
+                volume, grossSpread, feesTotal, netProfit, spreadPct, newStatus, newReason, decisionLatencyMs);
+    }
+
     @Override
     public String toString() {
         if (status.isExecuted()) {

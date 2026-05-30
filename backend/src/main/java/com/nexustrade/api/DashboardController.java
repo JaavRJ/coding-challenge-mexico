@@ -1,5 +1,6 @@
 package com.nexustrade.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexustrade.engine.ArbitrageEngine;
 import com.nexustrade.model.ArbitrageOpportunity;
 import org.slf4j.Logger;
@@ -42,33 +43,27 @@ public class DashboardController {
         return emitter;
     }
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     /**
      * Called by ArbitrageEngine to broadcast events to all connected SSE clients.
      */
     public void broadcast(ArbitrageOpportunity opp) {
         if (emitters.isEmpty()) return;
 
-        String json = String.format(
-                "{\"ts\":%d,\"buyExchange\":\"%s\",\"sellExchange\":\"%s\"," +
-                "\"buyPrice\":%.2f,\"sellPrice\":%.2f,\"volume\":%.6f," +
-                "\"grossSpread\":%.2f,\"feesTotal\":%.2f,\"netProfit\":%.2f," +
-                "\"spreadPct\":%.4f,\"status\":\"%s\",\"rejectionReason\":%s," +
-                "\"decisionLatencyMs\":%d}",
-                opp.timestampMs(), opp.buyExchange(), opp.sellExchange(),
-                opp.buyPrice(), opp.sellPrice(), opp.volume(),
-                opp.grossSpread(), opp.feesTotal(), opp.netProfit(),
-                opp.spreadPct(), opp.status().name(),
-                opp.rejectionReason() != null ? "\"" + opp.rejectionReason().replace("\"", "'") + "\"" : "null",
-                opp.decisionLatencyMs());
-
-        for (SseEmitter emitter : emitters) {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name("opportunity")
-                        .data(json));
-            } catch (IOException e) {
-                emitters.remove(emitter);
+        try {
+            String json = MAPPER.writeValueAsString(opp);
+            for (SseEmitter emitter : emitters) {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("opportunity")
+                            .data(json));
+                } catch (IOException e) {
+                    emitters.remove(emitter);
+                }
             }
+        } catch (Exception e) {
+            log.warn("Failed to serialize opportunity: {}", e.getMessage());
         }
     }
 

@@ -131,38 +131,38 @@ public class ArbitrageEngine {
             }
         }
 
-        for (ArbitrageOpportunity opp : opportunities) {
+        for (ArbitrageOpportunity originalOpp : opportunities) {
             totalOpportunities.incrementAndGet();
+            
+            ArbitrageOpportunity finalOpp = originalOpp;
+
+            // Check circuit breaker before deciding to execute
+            if (originalOpp.isProfitable() && circuitBreaker.isActive()) {
+                finalOpp = originalOpp.withStatus(TradeStatus.REJECTED_CIRCUIT_BREAKER, "Circuit breaker is active");
+            }
 
             // Record metrics
-            latencyTracker.recordDecisionLatency(opp.decisionLatencyMs());
-            latencyTracker.recordGrossSpread(opp.grossSpread().doubleValue());
+            latencyTracker.recordDecisionLatency(finalOpp.decisionLatencyMs());
+            latencyTracker.recordGrossSpread(finalOpp.grossSpread().doubleValue());
 
             // Record to JSONL + SSE broadcast
-            recorder.record(opp);
-            dashboardController.broadcast(opp);
+            recorder.record(finalOpp);
+            dashboardController.broadcast(finalOpp);
 
-            if (opp.isProfitable()) {
-                // Check circuit breaker
-                if (circuitBreaker.isActive()) {
-                    // Re-classify as REJECTED_CIRCUIT_BREAKER (already recorded above)
-                    totalRejected.incrementAndGet();
-                    continue;
-                }
-
+            if (finalOpp.isProfitable()) {
                 // Execute simulated trade
-                boolean traded = walletManager.executeTrade(opp);
+                boolean traded = walletManager.executeTrade(finalOpp);
                 if (traded) {
                     totalExecuted.incrementAndGet();
                     circuitBreaker.recordProfit();
-                    log.info("[ArbitrageEngine] {}", opp);
+                    log.info("[ArbitrageEngine] {}", finalOpp);
                 } else {
                     totalRejected.incrementAndGet();
                     circuitBreaker.recordLoss();
                 }
             } else {
                 totalRejected.incrementAndGet();
-                if (opp.netProfit().doubleValue() < 0) {
+                if (finalOpp.netProfit().doubleValue() < 0 && finalOpp.status() != TradeStatus.REJECTED_CIRCUIT_BREAKER) {
                     circuitBreaker.recordLoss();
                 }
             }

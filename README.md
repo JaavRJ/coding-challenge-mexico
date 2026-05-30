@@ -55,13 +55,23 @@ docker-compose up --build
 
 ---
 
-## Architecture (Phase 1)
+## Architecture (Completed System)
 
 ```
 Binance WS ──┐
 Kraken WS  ──┤── ConnectorRegistry ──► OrderBook (ConcurrentSkipListMap)
 Coinbase WS ─┘         │
-                        └──► REST /api/orderbooks ──► Next.js Dashboard
+                       ▼
+               ArbitrageEngine ◄──► SpreadCalculator (VWAP & Fees)
+                       │
+             ┌─────────┴─────────┐
+             ▼                   ▼
+       WalletManager       CircuitBreaker
+   (Shadow Trading)    (Risk Management)
+             │
+             ├───────────────────► ShadowLearningRecorder (events.jsonl)
+             │
+             └──► SSE (/api/stream) ──► Next.js Live Dashboard
 ```
 
 Each connector runs in its own **Virtual Thread** (Java 21 Project Loom).
@@ -74,7 +84,7 @@ If WebSocket fails 5 times → automatic REST fallback with 10s WS reconnect att
 | Phase | Status | Description |
 |-------|--------|-------------|
 | **1** | ✅ | WS connectors (Binance, Kraken, Coinbase), OrderBook, Status API, Dashboard skeleton |
-| **2** | 🔜 | ArbitrageEngine, SpreadCalculator, VWAP slippage |
-| **3** | 🔜 | WalletManager, Shadow Learning, SLO P95, JSONL export |
-| **4** | 🔜 | SSE streaming endpoint |
-| **5** | 🔜 | Full dashboard with P&L, trade history, real-time charts |
+| **2** | ✅ | ArbitrageEngine, SpreadCalculator, VWAP slippage |
+| **3** | ✅ | WalletManager, Shadow Learning, SLO P95, JSONL export, Circuit Breaker |
+| **4** | ✅ | REST endpoints, SSE streaming endpoint |
+| **5** | ✅ | Full dashboard with live P&L, SSE trade history table, Real-time Arbitrage Matrix |

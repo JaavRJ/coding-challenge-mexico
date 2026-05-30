@@ -1,0 +1,38 @@
+version: '3.9'
+
+services:
+  nexustrade-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nexustrade-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data   # Persist JSONL events logs
+    environment:
+      - JAVA_OPTS=-server -XX:+UseZGC -Xms256m -Xmx512m -Dspring.threads.virtual.enabled=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  nexustrade-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexustrade-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Use localhost:8080 because NEXT_PUBLIC_* vars are baked into the
+      # client-side JS bundle at build time. The browser (not the container)
+      # resolves this URL, so it must be a browser-accessible address.
+      # Port 8080 is exposed to the host via the backend service above.
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      nexustrade-backend:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: nexustrade
+  threads:
+    virtual:
+      enabled: true  # Java 21 Virtual Threads — Project Loom
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  metrics:
+    distribution:
+      percentiles-histogram:
+        nexustrade.decision.latency: true
+        nexustrade.orderbook.staleness: true
+
+nexustrade:
+  engine:
+    min-profit-usd: 5.0
+    max-volume-btc: 0.1
+    decision-timeout-ms: 200
+    evaluation-interval-ms: 50  # Engine evalúa cada 50ms
+
+  risk:
+    circuit-breaker-losses: 3
+    circuit-breaker-pause-seconds: 60
+    max-balance-drawdown-pct: 2.0
+    rebalance-threshold-pct: 40.0
+
+  wallet:
+    initial-usdt: 100000.0
+    initial-btc: 1.0
+
+  exchanges:
+    binance:
+      ws-url: "wss://stream.binance.com:9443/ws/btcusdt@depth5@100ms"
+      rest-url: "https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=5"
+      fee-maker: 0.001
+      fee-taker: 0.001
+      withdrawal-fee-btc: 0.0005
+
+    kraken:
+      ws-url: "wss://ws.kraken.com/v2"
+      rest-url: "https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=5"
+      fee-maker: 0.0016
+      fee-taker: 0.0026
+      withdrawal-fee-btc: 0.0002
+
+    coinbase:
+      ws-url: "wss://advanced-trade-ws.coinbase.com"
+      rest-url: "https://api.coinbase.com/api/v3/brokerage/best_bid_ask?product_ids=BTC-USD"
+      fee-maker: 0.004
+      fee-taker: 0.006
+      withdrawal-fee-btc: 0.0
+
+  persistence:
+    events-file: "./data/events.jsonl"
+    max-history-size: 10000
+
+logging:
+  level:
+    com.nexustrade: DEBUG
+    org.java_websocket: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{30}) - %msg%n"

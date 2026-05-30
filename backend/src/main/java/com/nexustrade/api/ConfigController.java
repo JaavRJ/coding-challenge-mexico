@@ -18,7 +18,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:3000}")
 public class ConfigController {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigController.class);

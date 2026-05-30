@@ -88,3 +88,33 @@ If WebSocket fails 5 times → automatic REST fallback with 10s WS reconnect att
 | **3** | ✅ | WalletManager, Shadow Learning, SLO P95, JSONL export, Circuit Breaker |
 | **4** | ✅ | REST endpoints, SSE streaming endpoint |
 | **5** | ✅ | Full dashboard with live P&L, SSE trade history table, Real-time Arbitrage Matrix |
+
+---
+
+## 🚀 Production Deployment (Vercel + Railway)
+
+This project is optimized for cloud deployment with minimal latency.
+
+### 1. Backend Deployment (Railway)
+Railway is recommended for the backend because it provides persistent memory for the WebSocket connections without severe timeouts or cold starts.
+
+1. Create a new project in [Railway](https://railway.app/).
+2. Connect your GitHub repository and select the `backend` folder.
+3. Railway will automatically detect the Dockerfile and build the image.
+4. Go to **Variables** and add:
+   - `PORT=8080`
+   - `SPRING_PROFILES_ACTIVE=prod`
+   - `FRONTEND_URL=https://<your-vercel-domain>.vercel.app`
+5. Go to **Settings > Networking** and generate a Public Domain.
+
+### 2. Frontend Deployment (Vercel)
+Vercel is recommended for the Next.js frontend to utilize Edge delivery.
+
+1. Import your GitHub repository in [Vercel](https://vercel.com/).
+2. Set the **Framework Preset** to Next.js.
+3. Set the **Root Directory** to `frontend`.
+4. Add the Environment Variable:
+   - `NEXT_PUBLIC_API_URL=https://<your-railway-domain>.up.railway.app`
+5. Deploy.
+
+**Note on WebSockets & SSE:** The backend includes a 15-second heartbeat ping to keep Server-Sent Events (SSE) connections alive behind cloud reverse proxies. CORS is dynamically configured via the `FRONTEND_URL` variable.

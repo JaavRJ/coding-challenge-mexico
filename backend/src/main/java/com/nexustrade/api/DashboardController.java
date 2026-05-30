@@ -22,7 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:3000}")
 public class DashboardController {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
@@ -44,6 +44,24 @@ public class DashboardController {
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * Send a ping event every 15 seconds to prevent reverse proxies (e.g. Railway, Nginx)
+     * from dropping the SSE connection due to inactivity.
+     */
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 15000)
+    public void sendHeartbeat() {
+        if (emitters.isEmpty()) return;
+        
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(SseEmitter.event().name("ping").data(""));
+            } catch (Exception e) {
+                emitter.complete();
+                emitters.remove(emitter);
+            }
+        }
+    }
 
     /**
      * Called by ArbitrageEngine to broadcast events to all connected SSE clients.

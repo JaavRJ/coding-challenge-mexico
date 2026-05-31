@@ -34,8 +34,10 @@ public class ConnectorRegistry {
     public ConnectorRegistry(
             BinanceConnector binance,
             KrakenConnector kraken,
-            CoinbaseConnector coinbase) {
-        this.connectors = List.of(binance, kraken, coinbase);
+            CoinbaseConnector coinbase,
+            BitfinexConnector bitfinex,
+            OkxConnector okx) {
+        this.connectors = List.of(binance, kraken, coinbase, bitfinex, okx);
     }
 
     public void setGlobalUpdateCallback(Consumer<OrderBook> callback) {

@@ -22,7 +22,7 @@ import java.util.Map;
 public class ConfigController {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigController.class);
-    private static final List<String> ALL_EXCHANGES = List.of("BINANCE", "KRAKEN", "COINBASE");
+    private static final List<String> ALL_EXCHANGES = List.of("BINANCE", "KRAKEN", "COINBASE", "BITFINEX", "OKX");
 
     private final EngineConfig config;
     private final ConnectorRegistry registry;

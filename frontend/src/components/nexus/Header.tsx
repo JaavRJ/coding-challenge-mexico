@@ -20,36 +20,43 @@ function formatUptime(ms: number) {
 }
 
 const healthMap = {
-  LIVE: { color: "text-profit", bg: "bg-profit/10", border: "border-profit/20", label: "System Live" },
-  DEGRADED: { color: "text-warn", bg: "bg-warn/10", border: "border-warn/20", label: "Degraded" },
-  DEAD: { color: "text-loss", bg: "bg-loss/10", border: "border-loss/20", label: "System Dead" },
+  LIVE: { color: "text-profit", bg: "bg-profit/10", border: "border-profit/20", label: "Sistema Activo" },
+  DEGRADED: { color: "text-warn", bg: "bg-warn/10", border: "border-warn/20", label: "Degradado" },
+  DEAD: { color: "text-loss", bg: "bg-loss/10", border: "border-loss/20", label: "Sistema Inactivo" },
 } as const;
 
 export function NexusHeader({ exchangesConnected, exchangesTotal, uptimeMs, pnl, health }: Props) {
   const h = healthMap[health];
   const { theme, toggle } = useTheme();
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 border-b nx-hairline pb-4">
-      <div className="flex items-baseline gap-4">
-        <h1 className="text-xl font-bold tracking-tighter text-foreground">
-          NEXUS<span className="font-light opacity-50">TRADE</span>
-        </h1>
-        <div className="hidden h-4 w-px bg-foreground/20 sm:block" />
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-foreground/40">
-          Arbitrage Engine // Institutional v4.2
-        </p>
+    <header className="flex flex-col gap-4 border-b nx-hairline bg-surface p-4 text-xs sm:flex-row sm:items-center sm:justify-between lg:px-6">
+      <div className="flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-bold tracking-tight text-foreground">
+            NOBA<span className="font-light opacity-50">TRADE</span>
+          </h1>
+          <span className="hidden text-[10px] font-medium tracking-[0.25em] text-foreground/40 sm:inline-block">
+            ARBITRAJE INSTITUCIONAL // V4.2
+          </span>
+        </div>
+        <div className="flex gap-6 font-mono text-[9px] uppercase tracking-widest text-foreground/50">
+          <div className="flex flex-col gap-1">
+            <span>Exchanges Conectados</span>
+            <span className="text-[11px] font-bold text-foreground flex items-center gap-2">
+              {exchangesConnected} / {exchangesTotal}
+              {exchangesConnected > 0 && <span className="h-1 w-1 bg-profit rounded-full animate-pulse" />}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span>Uptime</span>
+            <span className="text-[11px] font-bold text-foreground">
+              {formatUptime(uptimeMs)}
+            </span>
+          </div>
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-6">
-        <Metric label="Exchanges Connected">
-          <span className="nx-num text-foreground">
-            {exchangesConnected} / {exchangesTotal}
-          </span>
-          <span className="ml-1 text-profit">●</span>
-        </Metric>
-        <Metric label="Uptime">
-          <span className="nx-num text-foreground">{formatUptime(uptimeMs)}</span>
-        </Metric>
-        <Metric label="Engine P&L">
+        <Metric label="P&L del Motor">
           <span className={`nx-num font-bold ${pnl >= 0 ? "text-profit" : "text-loss"}`}>
             {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
           </span>

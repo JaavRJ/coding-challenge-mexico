@@ -40,7 +40,7 @@ export function Cockpit({ minProfitUsd, exchangesEnabled, onApply, onFlashCrash 
 
       <div className="grid grid-cols-3 gap-2">
         {Object.entries(local.enabled).map(([ex, on]) => {
-          const m = EXCHANGE_META[ex];
+          const m = EXCHANGE_META[ex as keyof typeof EXCHANGE_META] || { border: '', bg: '', color: '', name: ex, dot: '' };
           return (
             <button
               key={ex}

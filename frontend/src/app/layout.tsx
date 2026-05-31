@@ -9,9 +9,9 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'NexusTrade — BTC Arbitrage Engine',
-  description: 'High-frequency Bitcoin arbitrage monitoring system',
-}
+  title: "NobaTrade Institutional Engine",
+  description: "High-performance cryptocurrency arbitrage and analytics engine.",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

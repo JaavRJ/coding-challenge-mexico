@@ -42,15 +42,45 @@ public class HistoryController {
                 return ResponseEntity.ok(Collections.emptyList());
             }
 
-            // Read last N lines efficiently
-            List<String> allLines = Files.readAllLines(path);
-            int start = Math.max(0, allLines.size() - limit);
-            List<Map<String, Object>> events = new ArrayList<>();
+            List<String> lastLines = new ArrayList<>();
+            try (java.io.RandomAccessFile fileHandler = new java.io.RandomAccessFile(path.toFile(), "r")) {
+                long fileLength = fileHandler.length() - 1;
+                StringBuilder sb = new StringBuilder();
+                int lineCount = 0;
 
-            for (int i = allLines.size() - 1; i >= start; i--) {
+                for (long filePointer = fileLength; filePointer != -1; filePointer--) {
+                    fileHandler.seek(filePointer);
+                    int readByte = fileHandler.readByte();
+
+                    if (readByte == 0xA) {
+                        if (filePointer == fileLength) {
+                            continue;
+                        }
+                        lastLines.add(sb.reverse().toString());
+                        sb.setLength(0);
+                        lineCount++;
+                        if (lineCount == limit) {
+                            break;
+                        }
+                    } else if (readByte == 0xD) {
+                        if (filePointer == fileLength - 1) {
+                            continue;
+                        }
+                    } else {
+                        sb.append((char) readByte);
+                    }
+                }
+                if (sb.length() > 0 && lineCount < limit) {
+                    lastLines.add(sb.reverse().toString());
+                }
+            }
+
+            List<Map<String, Object>> events = new ArrayList<>();
+            // The list is in reverse order (newest first).
+            for (String line : lastLines) {
                 try {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> event = MAPPER.readValue(allLines.get(i), Map.class);
+                    Map<String, Object> event = MAPPER.readValue(line, Map.class);
                     events.add(event);
                 } catch (Exception e) {
                     // Skip malformed lines

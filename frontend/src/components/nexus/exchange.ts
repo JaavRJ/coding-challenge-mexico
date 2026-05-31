@@ -23,4 +23,18 @@ export const EXCHANGE_META: Record<
     border: "border-coinbase/30",
     dot: "bg-coinbase",
   },
+  bitfinex: {
+    name: "Bitfinex",
+    color: "text-[#00a651]",
+    bg: "bg-[#00a651]/10",
+    border: "border-[#00a651]/30",
+    dot: "bg-[#00a651]",
+  },
+  okx: {
+    name: "OKX",
+    color: "text-[#ffffff]",
+    bg: "bg-[#ffffff]/10",
+    border: "border-[#ffffff]/30",
+    dot: "bg-[#ffffff]",
+  },
 };

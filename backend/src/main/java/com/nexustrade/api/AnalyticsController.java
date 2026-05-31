@@ -38,90 +38,86 @@ public class AnalyticsController {
             return ResponseEntity.ok(Map.of("error", "No historical data"));
         }
 
-        int totalEvaluated = 0;
-        int originalExecuted = 0;
-        int newExecuted = 0;
-        double originalPnl = 0.0;
-        double newPnl = 0.0;
-
+        int[] counts = new int[3]; // totalEvaluated, originalExecuted, newExecuted
+        double[] pnls = new double[2]; // originalPnl, newPnl
         Map<String, Integer> originalRejections = new HashMap<>();
         Map<String, Integer> newRejections = new HashMap<>();
 
-        try {
-            List<String> lines = Files.readAllLines(path);
-            for (String line : lines) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> event = MAPPER.readValue(line, Map.class);
-                
-                String status = (String) event.get("status");
-                if (status == null) continue;
-                totalEvaluated++;
-
-                double grossSpread = getDouble(event, "grossSpread");
-                double feesTotal = getDouble(event, "feesTotal");
-                double netProfit = getDouble(event, "netProfit");
-                double volume = getDouble(event, "volume");
-                double buyPrice = getDouble(event, "buyPrice");
-                String origReason = (String) event.getOrDefault("rejectionReason", "");
-                
-                // Track original
-                if ("EXECUTED".equals(status)) {
-                    originalExecuted++;
-                    originalPnl += netProfit;
-                } else if ("REJECTED_FEES".equals(status)) {
-                    originalRejections.put("FEES_ROI", originalRejections.getOrDefault("FEES_ROI", 0) + 1);
-                } else {
-                    originalRejections.put(status, originalRejections.getOrDefault(status, 0) + 1);
-                }
-
-                // Simulate new scenario
-                // Skip triangular arbitrage for now or handle them with startUsdt? 
-                // For regular direct arbitrage: Buy Cost = buyPrice * volume
-                double buyCost = buyPrice * volume;
-                if (buyCost <= 0 && "TRIANGULAR".equals(event.get("type"))) {
-                    // Start USDT was logged somewhere? Actually triangular has 'startUsdt'
-                    buyCost = getDouble(event, "startUsdt");
-                }
-                
-                double newFeesTotal = feesTotal * req.feeMultiplier();
-                double newNetProfit = grossSpread - newFeesTotal;
-                
-                // Required profit based on new minRoiPct
-                double requiredProfit = buyCost * (req.minRoiPct() / 100.0);
-
-                String newStatus = status;
-                
-                // We only override REJECTED_FEES and EXECUTED statuses. 
-                // We assume Latency rejections still happen in replay.
-                if ("EXECUTED".equals(status) || "REJECTED_FEES".equals(status)) {
-                    if (newNetProfit > requiredProfit) {
-                        newStatus = "EXECUTED";
+        try (java.util.stream.Stream<String> lines = Files.lines(path)) {
+            lines.forEach(line -> {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> event = MAPPER.readValue(line, Map.class);
+                    
+                    String status = (String) event.get("status");
+                    if (status == null) return;
+                    
+                    int[] localCounts = new int[3];
+                    localCounts[0] = 1;
+                    
+                    double grossSpread = getDouble(event, "grossSpread");
+                    double feesTotal = getDouble(event, "feesTotal");
+                    double netProfit = getDouble(event, "netProfit");
+                    double volume = getDouble(event, "volume");
+                    double buyPrice = getDouble(event, "buyPrice");
+                    
+                    double localOrigPnl = 0.0;
+                    if ("EXECUTED".equals(status)) {
+                        localCounts[1] = 1;
+                        localOrigPnl = netProfit;
+                    } else if ("REJECTED_FEES".equals(status)) {
+                        originalRejections.merge("FEES_ROI", 1, Integer::sum);
                     } else {
-                        newStatus = "REJECTED_FEES";
+                        originalRejections.merge(status, 1, Integer::sum);
                     }
-                }
 
-                if ("EXECUTED".equals(newStatus)) {
-                    newExecuted++;
-                    newPnl += newNetProfit;
-                } else if ("REJECTED_FEES".equals(newStatus)) {
-                    newRejections.put("FEES_ROI", newRejections.getOrDefault("FEES_ROI", 0) + 1);
-                } else {
-                    newRejections.put(newStatus, newRejections.getOrDefault(newStatus, 0) + 1);
-                }
-            }
+                    double buyCost = buyPrice * volume;
+                    if (buyCost <= 0 && "TRIANGULAR".equals(event.get("type"))) {
+                        buyCost = getDouble(event, "startUsdt");
+                    }
+                    
+                    double newFeesTotal = feesTotal * req.feeMultiplier();
+                    double newNetProfit = grossSpread - newFeesTotal;
+                    double requiredProfit = buyCost * (req.minRoiPct() / 100.0);
 
+                    String newStatus = status;
+                    if ("EXECUTED".equals(status) || "REJECTED_FEES".equals(status)) {
+                        if (newNetProfit > requiredProfit) {
+                            newStatus = "EXECUTED";
+                        } else {
+                            newStatus = "REJECTED_FEES";
+                        }
+                    }
+
+                    double localNewPnl = 0.0;
+                    if ("EXECUTED".equals(newStatus)) {
+                        localCounts[2] = 1;
+                        localNewPnl = newNetProfit;
+                    } else if ("REJECTED_FEES".equals(newStatus)) {
+                        newRejections.merge("FEES_ROI", 1, Integer::sum);
+                    } else {
+                        newRejections.merge(newStatus, 1, Integer::sum);
+                    }
+
+                    counts[0] += localCounts[0];
+                    counts[1] += localCounts[1];
+                    counts[2] += localCounts[2];
+                    pnls[0] += localOrigPnl;
+                    pnls[1] += localNewPnl;
+
+                } catch (Exception e) { }
+            });
         } catch (Exception e) {
             log.error("Replay engine failed", e);
             return ResponseEntity.internalServerError().build();
         }
 
         Map<String, Object> result = new HashMap<>();
-        result.put("totalEvaluated", totalEvaluated);
-        result.put("originalExecuted", originalExecuted);
-        result.put("newExecuted", newExecuted);
-        result.put("originalPnl", originalPnl);
-        result.put("newPnl", newPnl);
+        result.put("totalEvaluated", counts[0]);
+        result.put("originalExecuted", counts[1]);
+        result.put("newExecuted", counts[2]);
+        result.put("originalPnl", pnls[0]);
+        result.put("newPnl", pnls[1]);
         result.put("originalRejections", originalRejections);
         result.put("newRejections", newRejections);
         
@@ -138,33 +134,34 @@ public class AnalyticsController {
         // Key: HourOfDay_Route (e.g. "14_BINANCE->KRAKEN")
         Map<String, HeatmapCell> cells = new HashMap<>();
 
-        try {
-            List<String> lines = Files.readAllLines(path);
-            for (String line : lines) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> event = MAPPER.readValue(line, Map.class);
-                
-                Number ts = (Number) event.get("ts");
-                if (ts == null) continue;
-                
-                String buyEx = (String) event.get("buyExchange");
-                String sellEx = (String) event.get("sellExchange");
-                if (buyEx == null || sellEx == null) continue;
-                
-                String route = buyEx.substring(0, 3) + "->" + sellEx.substring(0, 3);
-                
-                ZonedDateTime zdt = Instant.ofEpochMilli(ts.longValue()).atZone(ZoneId.systemDefault());
-                int hour = zdt.getHour();
-                
-                String key = hour + "_" + route;
-                HeatmapCell cell = cells.computeIfAbsent(key, k -> new HeatmapCell(hour, route));
-                
-                cell.count++;
-                cell.totalGrossSpread += getDouble(event, "grossSpread");
-                if ("EXECUTED".equals(event.get("status"))) {
-                    cell.executedCount++;
-                }
-            }
+        try (java.util.stream.Stream<String> lines = Files.lines(path)) {
+            lines.forEach(line -> {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> event = MAPPER.readValue(line, Map.class);
+                    
+                    Number ts = (Number) event.get("ts");
+                    if (ts == null) return;
+                    
+                    String buyEx = (String) event.get("buyExchange");
+                    String sellEx = (String) event.get("sellExchange");
+                    if (buyEx == null || sellEx == null) return;
+                    
+                    String route = buyEx.substring(0, 3) + "->" + sellEx.substring(0, 3);
+                    
+                    ZonedDateTime zdt = Instant.ofEpochMilli(ts.longValue()).atZone(ZoneId.systemDefault());
+                    int hour = zdt.getHour();
+                    
+                    String key = hour + "_" + route;
+                    HeatmapCell cell = cells.computeIfAbsent(key, k -> new HeatmapCell(hour, route));
+                    
+                    cell.count++;
+                    cell.totalGrossSpread += getDouble(event, "grossSpread");
+                    if ("EXECUTED".equals(event.get("status"))) {
+                        cell.executedCount++;
+                    }
+                } catch (Exception e) {}
+            });
         } catch (Exception e) {
             log.error("Analytics engine failed", e);
             return ResponseEntity.internalServerError().build();

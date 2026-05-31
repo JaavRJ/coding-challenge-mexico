@@ -11,7 +11,7 @@ services:
     volumes:
       - ./data:/app/data   # Persist JSONL events logs
     environment:
-      - JAVA_OPTS=-server -XX:+UseZGC -Xms256m -Xmx512m -Dspring.threads.virtual.enabled=true
+      - JAVA_OPTS=-server -XX:+UseZGC -Xms512m -Xmx2g -Dspring.threads.virtual.enabled=true
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]

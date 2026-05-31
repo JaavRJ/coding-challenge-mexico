@@ -56,15 +56,15 @@ export function DirectTradesTable({ trades }: { trades: DirectTradeEvent[] }) {
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-[#0f0f10] backdrop-blur">
             <tr className="text-left font-mono text-[10px] uppercase tracking-widest text-foreground/40">
-              <Th>Time</Th><Th>Pair</Th><Th>Buy</Th><Th>Sell</Th>
+              <Th>Hora</Th><Th>Par</Th><Th>Compra</Th><Th>Venta</Th>
               <Th className="text-right">Vol</Th>
-              <Th className="text-right">Profit</Th>
-              <Th className="text-right">Status</Th>
+              <Th className="text-right">Ganancia</Th>
+              <Th className="text-right">Estado</Th>
             </tr>
           </thead>
           <tbody>
             {trades.length === 0 && (
-              <tr><td colSpan={7} className="py-10 text-center font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/30">Waiting for engine signals…</td></tr>
+              <tr><td colSpan={7} className="py-10 text-center font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/30">Esperando señales del motor…</td></tr>
             )}
             {trades.map((t) => (
               <tr key={t.id} className={`border-t nx-hairline ${flash.has(t.id) ? "nx-flash" : ""}`}>

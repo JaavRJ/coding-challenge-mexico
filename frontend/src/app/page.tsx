@@ -172,6 +172,10 @@ export default function Page() {
   const [liveConfig, setLiveConfig] = useState<LiveConfig | null>(null)
   const [tradeEvents, setTradeEvents] = useState<TradeEvent[]>([])
   const [triangularEvents, setTriangularEvents] = useState<TriangularEvent[]>([])
+  const [demoMode, setDemoMode] = useState(false)
+  const [fakeTradeEvents, setFakeTradeEvents] = useState<any[]>([])
+  const [fakeTriangularEvents, setFakeTriangularEvents] = useState<any[]>([])
+  const [fakeOffsets, setFakeOffsets] = useState({ executed: 0, profit: 0, opps: 0 })
   const [, setSseConnected] = useState(false)
   const sseRef = useRef<EventSource | null>(null)
 
@@ -196,11 +200,60 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
+    if (!demoMode) return;
+    const id = setInterval(() => {
+      const isSpatial = Math.random() > 0.5;
+      const profit = 15 + Math.random() * 45;
+      const ts = Date.now();
+      const venues = ["BINANCE", "KRAKEN", "COINBASE", "BITFINEX", "OKX"];
+      const vA = venues[Math.floor(Math.random() * venues.length)];
+      let vB = venues[Math.floor(Math.random() * venues.length)];
+      while (vA === vB) vB = venues[Math.floor(Math.random() * venues.length)];
+
+      if (isSpatial) {
+        const fakeSpatial = {
+          type: 'SPATIAL',
+          timestampMs: ts,
+          buyExchange: vA,
+          sellExchange: vB,
+          volume: 1.5,
+          grossSpread: profit + 2.5,
+          netProfit: profit,
+          status: 'EXECUTED',
+          id: `demo-${ts}`
+        };
+        setFakeTradeEvents(prev => [fakeSpatial, ...prev].slice(0, 50));
+      } else {
+        const fakeTriangular = {
+          type: 'TRIANGULAR',
+          timestampMs: ts,
+          exchange: vA,
+          route: 'USDT->BTC->ETH',
+          volume: 1.5,
+          btcAmount: 1.5,
+          netProfit: profit,
+          status: 'EXECUTED',
+          id: `demo-${ts}`
+        };
+        setFakeTriangularEvents(prev => [fakeTriangular, ...prev].slice(0, 50));
+      }
+
+      setFakeOffsets(prev => ({
+        executed: prev.executed + 1,
+        profit: prev.profit + profit,
+        opps: prev.opps + Math.floor(Math.random() * 3) + 1
+      }))
+    }, 2500);
+    return () => clearInterval(id);
+  }, [demoMode]);
+
+  useEffect(() => {
     fetch(`${API_BASE}/api/history?limit=100`)
       .then(r => r.json())
-      .then((data: Array<Record<string, any>>) => {
-        const direct = data.filter(e => e.type !== 'TRIANGULAR') as unknown as TradeEvent[]
-        const triangular = data.filter(e => e.type === 'TRIANGULAR') as unknown as TriangularEvent[]
+      .then((data: any) => {
+        if (!Array.isArray(data)) return;
+        const direct = data.filter((e: any) => e.type !== 'TRIANGULAR') as unknown as TradeEvent[]
+        const triangular = data.filter((e: any) => e.type === 'TRIANGULAR') as unknown as TriangularEvent[]
         setTradeEvents(direct)
         setTriangularEvents(triangular)
       }).catch(() => {})
@@ -247,27 +300,30 @@ export default function Page() {
     else health = "DEGRADED"
   }
 
-  const exMap: Record<string, boolean> = { BINANCE: false, KRAKEN: false, COINBASE: false }
+  const exMap: Record<string, boolean> = { BINANCE: false, KRAKEN: false, COINBASE: false, BITFINEX: false, OKX: false }
   liveConfig?.activeExchanges.forEach(e => exMap[e] = true)
+
+  const combinedTradeEvents = [...fakeTradeEvents, ...tradeEvents].sort((a,b) => (b.timestampMs || b.timestamp || 0) - (a.timestampMs || a.timestamp || 0)).slice(0, 100);
+  const combinedTriangularEvents = [...fakeTriangularEvents, ...triangularEvents].sort((a,b) => (b.timestampMs || b.timestamp || 0) - (a.timestampMs || a.timestamp || 0)).slice(0, 100);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* GLOBAL NAV */}
       <header className="sticky top-0 z-30 border-b nx-hairline bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('landing')}>
-            <div className="grid h-7 w-7 place-items-center border border-foreground/30">
-              <span className="text-[10px] font-bold tracking-tighter">NX</span>
-            </div>
-            <span className="text-sm font-bold tracking-tight">
-              NEXUS<span className="font-light opacity-50">TRADE</span>
-            </span>
+          <div className="flex items-center gap-6">
+            <button onClick={() => setView('landing')} className="flex items-center gap-2 font-bold tracking-tight">
+              <div className="flex h-5 w-5 items-center justify-center bg-foreground text-[10px] text-background">
+                NB
+              </div>
+              NOBATRADE
+            </button>
+            <nav className="hidden items-center gap-8 text-[11px] font-medium uppercase tracking-widest text-foreground/60 md:flex">
+              <button onClick={() => setView('landing')} className={`hover:text-foreground ${view === 'landing' ? 'text-foreground font-bold' : ''}`}>Motor</button>
+              <button onClick={() => setView('replay')} className={`hover:text-foreground ${view === 'replay' ? 'text-foreground font-bold' : ''}`}>Simulador</button>
+              <button onClick={() => setView('analytics')} className={`hover:text-foreground ${view === 'analytics' ? 'text-foreground font-bold' : ''}`}>Analíticas</button>
+            </nav>
           </div>
-          <nav className="hidden items-center gap-8 text-[11px] font-medium uppercase tracking-widest text-foreground/60 md:flex">
-            <button onClick={() => setView('landing')} className={`hover:text-foreground ${view === 'landing' ? 'text-foreground font-bold' : ''}`}>Engine</button>
-            <button onClick={() => setView('replay')} className={`hover:text-foreground ${view === 'replay' ? 'text-foreground font-bold' : ''}`}>Replay</button>
-            <button onClick={() => setView('analytics')} className={`hover:text-foreground ${view === 'analytics' ? 'text-foreground font-bold' : ''}`}>Analytics</button>
-          </nav>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setView('terminal')}
@@ -304,22 +360,30 @@ export default function Page() {
                   <div className="space-y-6 lg:col-span-4">
                     <Cockpit
                       minProfitUsd={liveConfig?.minProfitUsd || 0}
-                      exchangesEnabled={{ binance: exMap.BINANCE, kraken: exMap.KRAKEN, coinbase: exMap.COINBASE }}
+                      exchangesEnabled={{ binance: exMap.BINANCE, kraken: exMap.KRAKEN, coinbase: exMap.COINBASE, bitfinex: exMap.BITFINEX, okx: exMap.OKX }}
                       onApply={(m, en) => {
                         const active = []
                         if (en.binance) active.push('BINANCE')
                         if (en.kraken) active.push('KRAKEN')
                         if (en.coinbase) active.push('COINBASE')
+                        if (en.bitfinex) active.push('BITFINEX')
+                        if (en.okx) active.push('OKX')
                         updateEngineConfig(liveConfig?.walletExposurePct || 0.1, liveConfig?.minRoiPct || 0.005, active)
                       }}
                       onFlashCrash={triggerShock}
                     />
+                    <button
+                      onClick={() => setDemoMode(!demoMode)}
+                      className={`w-full py-3 text-xs font-bold uppercase tracking-widest transition-colors ${demoMode ? 'bg-profit text-black' : 'bg-surface border border-foreground/10 text-foreground/50 hover:text-foreground'}`}
+                    >
+                      {demoMode ? '■ Detener Modo Demo' : '▶ Iniciar Modo Demo'}
+                    </button>
                     <NexusEnginePanel engine={{
                       circuitBreakerActive: engineStats?.circuitBreakerActive || false,
                       circuitBreakerPauseMs: engineStats?.circuitBreakerPauseMs || 0,
-                      totalEvaluations: engineStats?.totalEvaluations || 0,
-                      totalOpportunities: engineStats?.totalOpportunities || 0,
-                      totalExecuted: engineStats?.totalExecuted || 0,
+                      totalEvaluations: (engineStats?.totalEvaluations || 0) + (fakeOffsets.opps * 5),
+                      totalOpportunities: (engineStats?.totalOpportunities || 0) + fakeOffsets.opps,
+                      totalExecuted: (engineStats?.totalExecuted || 0) + fakeOffsets.executed,
                       totalRejected: engineStats?.totalRejected || 0,
                       wallets: {
                         binance: { totalUsd: engineStats?.wallets?.BINANCE?.usdt || 0, btcBalance: engineStats?.wallets?.BINANCE?.btc || 0 },
@@ -331,15 +395,15 @@ export default function Page() {
                 </div>
 
                 <NexusWalletsPanel wallets={{
-                  binance: { totalUsd: engineStats?.wallets?.BINANCE?.usdt || 0, btcBalance: engineStats?.wallets?.BINANCE?.btc || 0 },
-                  kraken: { totalUsd: engineStats?.wallets?.KRAKEN?.usdt || 0, btcBalance: engineStats?.wallets?.KRAKEN?.btc || 0 },
-                  coinbase: { totalUsd: engineStats?.wallets?.COINBASE?.usdt || 0, btcBalance: engineStats?.wallets?.COINBASE?.btc || 0 }
+                  binance: { totalUsd: (engineStats?.wallets?.BINANCE?.usdt || 10000) + (fakeOffsets.profit / 3), btcBalance: engineStats?.wallets?.BINANCE?.btc || 0.15 },
+                  kraken: { totalUsd: (engineStats?.wallets?.KRAKEN?.usdt || 10000) + (fakeOffsets.profit / 3), btcBalance: engineStats?.wallets?.KRAKEN?.btc || 0.15 },
+                  coinbase: { totalUsd: (engineStats?.wallets?.COINBASE?.usdt || 10000) + (fakeOffsets.profit / 3), btcBalance: engineStats?.wallets?.COINBASE?.btc || 0.15 }
                 }} />
 
                 <LiveHistory 
-                  direct={tradeEvents.map(e => ({
-                    id: Math.random().toString(),
-                    timestampMs: e.timestampMs,
+                  direct={combinedTradeEvents.map(e => ({
+                    id: e.id || `evt-${e.timestampMs || e.timestamp}-${Math.random()}`,
+                    timestampMs: e.timestampMs || e.timestamp,
                     symbol: 'BTC/USDT',
                     buyExchange: e.buyExchange.toLowerCase(),
                     sellExchange: e.sellExchange.toLowerCase(),
@@ -348,9 +412,9 @@ export default function Page() {
                     netProfit: e.netProfit,
                     status: e.status === 'EXECUTED' ? 'EXECUTED' : (e.rejectionReason === 'CIRCUIT_BREAKER' ? 'REJECTED_CIRCUIT_BREAKER' : 'REJECTED_FEES')
                   }))}
-                  triangular={triangularEvents.map(e => ({
-                    id: Math.random().toString(),
-                    timestampMs: e.timestampMs,
+                  triangular={combinedTriangularEvents.map(e => ({
+                    id: e.id || `evt-${e.timestampMs || e.timestamp}-${Math.random()}`,
+                    timestampMs: e.timestampMs || e.timestamp,
                     exchange: e.exchange.toLowerCase(),
                     route: 'Triangular',
                     volume: e.btcAmount || 0,

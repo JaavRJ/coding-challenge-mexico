@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/javis">GitHub</a> ·
-  <a href="https://www.linkedin.com/in/javis/">LinkedIn</a>
+  <a href="https://github.com/JoahanMorales">GitHub</a> ·
+  <a href="https://www.linkedin.com/in/joahan-morales/">LinkedIn</a>
 </p>
 
 <p align="center">
@@ -15,41 +15,49 @@
   <img alt="Java 21" src="https://img.shields.io/badge/Java-21-orange?style=flat-square" />
   <img alt="Spring Boot" src="https://img.shields.io/badge/Spring_Boot-3-6DB33F?style=flat-square" />
   <img alt="Docker" src="https://img.shields.io/badge/Docker-compose-2496ED?style=flat-square" />
-  <img alt="TailwindCSS" src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square" />
   <img alt="Realtime SSE" src="https://img.shields.io/badge/SSE-live-0ea5e9?style=flat-square" />
+  <img alt="Math" src="https://img.shields.io/badge/BigDecimal-financial_math-10b981?style=flat-square" />
 </p>
 
 ---
 
 ## 📖 Visión General
 
-**NobaTrade** no es un bot convencional; es un simulador de arquitectura de grado institucional diseñado para detectar ineficiencias de mercado (spreads) en milisegundos. Conecta de forma simultánea y asíncrona a múltiples exchanges globales, normaliza sus libros de órdenes (Order Books) en una estructura unificada y evalúa estrategias de arbitraje de manera continua.
+**NobaTrade** no es un bot convencional; es un simulador de arquitectura de grado institucional diseñado para detectar ineficiencias de mercado (spreads) en milisegundos. Conecta de forma simultánea y asíncrona a múltiples exchanges globales, normaliza sus libros de órdenes (`Order Books`) en una estructura unificada y evalúa estrategias de arbitraje de manera continua.
 
 Construido bajo el paradigma **Event-Driven**, NobaTrade delega todo el procesamiento matemático pesado a un Backend inyectado en esteroides (Java 21 + Spring Boot), mientras sirve a los usuarios finales una interfaz gráfica (Frontend en Next.js) que fluye en tiempo real sin saturar el navegador, gracias a un túnel de *Server-Sent Events (SSE)*.
 
----
+La entrega pública separa con claridad:
+- **Live market data**: Precios reales recibidos por conexiones concurrentes a exchanges de Tier 1.
+- **Paper P&L**: Ganancias y pérdidas calculadas sobre datos reales de forma hiperrealista.
+- **Circuit Breaker**: Mecanismo manual/automático de mitigación de riesgo ante mercados en colapso.
 
-## ✨ Características Principales y Diferenciadores
+## 📸 Screenshots
+
+*(Puedes reemplazar las URLs por imágenes reales que subas al repo en el folder `/docs`)*
+
+| Terminal de Arbitraje (Engine Cockpit) | Landing Page & Documentación Técnica |
+| :---: | :---: |
+| <img src="https://via.placeholder.com/800x450.png?text=Terminal+Screenshot" width="100%" alt="Terminal"> | <img src="https://via.placeholder.com/800x450.png?text=Landing+Page" width="100%" alt="Landing"> |
+| Vista principal del Cockpit de Motores y tabla histórica de inyecciones financieras. | Explicación técnica animada del modelo en la Landing Page. |
+
+## ✨ Diferenciadores
 
 ### 1. Motor Computacional Estricto (Backend)
-- **Cero Errores de Precisión:** Todo cálculo financiero, spread y fee se procesa utilizando `BigDecimal`. Al eliminar la dependencia de primitivos de coma flotante (IEEE 754), evitamos los clásicos micro-descuadres matemáticos.
-- **Conectores Concurrentes Asíncronos:** Ingesta de datos en paralelo desde **Binance, Kraken, Coinbase, Bitfinex y OKX**. El sistema es resiliente: si un WebSocket cae, el motor sigue evaluando con el resto de mercados sin bloquear el hilo principal.
-- **Normalización Unificada:** Cada exchange transmite datos en su propio formato. Nuestro componente `OrderBook Normalizer` unifica el Bid y el Ask al instante para una evaluación cruzada.
+- **Cero Errores de Precisión:** Todo cálculo financiero, spread y fee se procesa utilizando la clase inmutable `BigDecimal`. Al eliminar la dependencia de primitivos de coma flotante (IEEE 754), evitamos los clásicos micro-descuadres matemáticos presentes en scripts simples.
+- **Conectores Concurrentes Asíncronos:** Ingesta de datos en paralelo desde **Binance, Kraken, Coinbase, Bitfinex y OKX**. El sistema es resiliente: si un conector cae, el motor sigue evaluando con el resto de mercados sin bloquear el hilo principal.
+- **Normalización Unificada:** Cada exchange transmite datos en su propio formato. Nuestro componente `OrderBook Normalizer` unifica el Bid y el Ask al instante para una evaluación cruzada universal.
 
 ### 2. Algoritmos de Arbitraje
-- **Spatial Arbitrage (Cross-Exchange):** NobaTrade barre el mercado detectando dónde comprar barato y dónde vender caro simultáneamente cruzando 5 exchanges en tiempo real.
-- **Triangular Arbitrage:** Evalúa el ciclo asimétrico entre múltiples pares dentro de un mismo exchange (Ej. USDT -> BTC -> ETH -> USDT) buscando ineficiencias matemáticas temporales.
+| Estrategia | Criterio |
+|---|---|
+| `CROSS_EXCHANGE (Spatial)` | Compra el mejor Ask en un exchange y vende el mejor Bid en otro simultáneamente asumiendo costos de Taker Fee. |
+| `TRIANGULAR` | Evalúa el ciclo asimétrico entre múltiples pares dentro de un mismo exchange (Ej. USDT -> BTC -> ETH -> USDT). |
+| `PAPER_TRADING` | Valida márgenes restando fricciones, sin emitir transacciones con capital real, para fines de calibración de Risk-Reward. |
 
-### 3. Gestión de Riesgos Institucional
-- **Circuit Breaker Automatizado:** Previene catástrofes de mercado frenando el motor de operaciones si detecta una alta volatilidad o caídas continuas.
-- **Engine Cockpit:** Una consola de control para el usuario final que permite habilitar/deshabilitar mercados escuchados, ajustar márgenes mínimos de ganancia (Min ROI) y ejecutar pruebas de estrés (Flash Crash).
-
-### 4. Interfaz UI/UX de Élite
-- Diseño **Dark Mode Financiero Premium** que rivaliza con las plataformas de trading de Wall Street.
-- **Micro-animaciones de celdas y tablas:** Cada orden que entra hace "flash" en la interfaz.
-- **Modo DEMO Especializado:** NobaTrade incluye un "simulador de mercado frenético". Ideal para demostraciones y Hackathons, permite inyectar volumen sintético en la interfaz para probar la escalabilidad gráfica del UI y el crecimiento de PNL sin depender de la extrema volatilidad aleatoria del mercado real.
-
----
+### 3. Gestión de Riesgos Institucional y Cockpit
+- **Circuit Breaker Automatizado:** Previene catástrofes frenando el motor si el riesgo sube de nivel crítico.
+- **Engine Cockpit:** Una consola de control incrustada en el UI para habilitar/deshabilitar mercados escuchados en caliente, ajustar la meta de ganancia (Min ROI) y ejecutar pruebas de estrés inyectando un colapso manual (*Flash Crash*).
 
 ## 🏗 Arquitectura del Sistema
 
@@ -57,7 +65,7 @@ El proyecto sigue una arquitectura de microservicios contenerizada con estricta 
 
 ```mermaid
 flowchart TD
-    subgraph Mercados ["Mercados (Exchanges)"]
+    subgraph Mercados ["Mercados Mundiales (Exchanges)"]
         B["Binance"]
         K["Kraken"]
         C["Coinbase"]
@@ -66,7 +74,7 @@ flowchart TD
     end
 
     subgraph Backend ["Motor Backend (Java 21 + Spring Boot)"]
-        CR["ConnectorRegistry (Ingesta de Ticks)"]
+        CR["ConnectorRegistry (Ingesta Asíncrona)"]
         ON["OrderBook Normalizer"]
         AE["Arbitrage Engine (Math & Eval)"]
         RM["Risk Manager & Circuit Breaker"]
@@ -81,7 +89,7 @@ flowchart TD
         LH["Live History & Wallets"]
     end
 
-    B & K & C & F & O -- WebSocket / REST --> CR
+    B & K & C & F & O -- REST / WS --> CR
     CR --> ON
     ON --> AE
     AE --> RM
@@ -91,78 +99,84 @@ flowchart TD
     SSE -- REST Polling --> CK & HM
 ```
 
----
+El backend asimila la pesada carga del mercado. La interfaz consume *Server-Sent Events (SSE)* logrando un frontend extremadamente fluido sin hundir al navegador del cliente por saturación de peticiones.
 
-## 🛠 Stack Tecnológico y Estructura
+## 📂 Project Structure
 
-### Backend (`/backend`)
-El corazón computacional. Escrito en **Java 21** para aprovechar Virtual Threads y un alto rendimiento concurrente.
-- **Framework:** Spring Boot 3
-- **Gestor de Paquetes:** Maven
-- **Librerías Clave:** `WebFlux` para llamadas asíncronas HTTP, y `Jackson` para parsing veloz de JSON.
+La modularización garantiza un acoplamiento suelto entre el cerebro numérico y el visualizador:
 
-### Frontend (`/frontend`)
-La cara del sistema. Optimizada para no sufrir pérdida de frames al recibir grandes volúmenes de datos por segundo.
-- **Core:** Next.js 14 + React 18
-- **Lenguaje:** TypeScript (Tipado estricto para las entidades financieras).
-- **Estilos:** TailwindCSS para personalización de diseño rápido y utilitario.
-- **Iconografía:** Lucide-React.
+```text
+nexustrade-fase1_1/
+├── backend/
+│   ├── src/main/java/com/nexustrade/
+│   │   ├── connector/     # Conectores REST/WS a cada Exchange
+│   │   ├── engine/        # Lógica matemática central (Spatial, Triangular)
+│   │   ├── model/         # Entidades de negocio (OrderBook, ArbitrageOpportunity)
+│   │   └── rest/          # Endpoints HTTP y Server-Sent Events (SSE)
+│   ├── pom.xml            # Dependencias Maven (Spring Boot 3)
+│   └── Dockerfile         # Receta de empaquetado para el servicio Java
+├── frontend/
+│   ├── src/app/           # Enrutamiento de Next.js (Terminal, Replay, Analytics)
+│   ├── src/components/    # Componentes React Reutilizables (Cockpit, Heatmap, Tablas)
+│   ├── src/lib/           # Core de utilidades, helpers y validadores
+│   ├── package.json       # Dependencias Node (React, Framer Motion, Tailwind)
+│   └── Dockerfile         # Receta de empaquetado del SSR de Next.js
+└── docker-compose.yml     # Orquestador maestro de la infraestructura
+```
 
----
+## 🕹 Live y Demo
+
+| Modo | Fuente | Uso |
+|---|---|---|
+| `LIVE` | Precios públicos en vivo de Binance, Kraken, Coinbase, OKX y Bitfinex. | Escaneo hiperreal del mercado global para *paper trading* conservador. Las ejecuciones dependen al 100% de la existencia de márgenes viables que superen las fricciones de red. |
+| `DEMO` | Generación algorítmica sintética acoplada al UI. | Diseñado exclusivamente para exhibiciones rápidas o pitches. Inyecta rentabilidad y volumen artificiales con un clic para demostrar las capacidades del dashboard visual y el rendimiento del PNL sin esperar horas de inactividad de mercado. |
 
 ## 🚀 Despliegue Rápido (Quick Start)
 
-Para evitar problemas de compatibilidad (ya sea Windows, Mac o Linux), todo el ecosistema de NobaTrade se orquesta mediante **Docker**.
+Para asegurar total determinismo sin importar el sistema operativo host (Windows, Mac o Linux), todo el ecosistema de NobaTrade se orquesta mediante **Docker**.
 
 ### Prerrequisitos
 - Docker y Docker Compose instalados.
-- Ningún servicio ocupando los puertos `8080` y `3000`.
+- Ningún servicio externo ocupando los puertos `8080` y `3000`.
 
 ### Pasos de Instalación
 
-1. Clona este repositorio y navega a la raíz:
+1. Clona este repositorio y entra a la carpeta:
 ```bash
-git clone https://github.com/tu-usuario/nexustrade-fase1.git
+git clone https://github.com/JoahanMorales/nexustrade-fase1.git
 cd nexustrade-fase1
 ```
 
-2. Ejecuta el compilador y orquestador maestro:
+2. Dispara el compilador multi-etapa y orquestador maestro en background:
 ```bash
 docker-compose up -d --build
 ```
 
-3. Abre el navegador web:
-- **Terminal Web:** [http://localhost:3000](http://localhost:3000)
-- **API Backend (Health):** [http://localhost:8080/api/status](http://localhost:8080/api/status)
+3. Abre el ecosistema en tu navegador:
+- **Terminal Web (Frontend):** [http://localhost:3000](http://localhost:3000)
 
-*Para detener la aplicación:*
-```bash
-docker-compose down
-```
-
----
+*Health checks del Backend:*
+- Status global: [http://localhost:8080/api/status](http://localhost:8080/api/status)
+- Panel del motor: [http://localhost:8080/api/status/engine](http://localhost:8080/api/status/engine)
 
 ## 🎯 Cumplimiento de la Rúbrica (Challenge)
 
 | Criterio | Evidencia en NobaTrade |
 |---|---|
-| **Velocidad** | Ingesta concurrente y canal de comunicación SSE que elimina el *overhead* del polling continuo. |
-| **Precisión** | Descarte total de floats. Motor financiero blindado con aritmética `BigDecimal`. |
-| **Robustez** | Contenedores Dockerizados, tolerancia al fallo de WebSockets y `Circuit Breaker` operativo desde UI. |
-| **Estrategia** | Modelos Multi-Exchange (Spatial) e Intra-Exchange (Triangular) operando simultáneamente. |
-| **Arquitectura** | Desacoplamiento total entre motor matemático (Java) y motor visual (Node/React). |
-| **UX/UI** | Tema oscuro institucional, tarjetas interactivas de arquitectura interna y un **Modo Demo** inyectable para exhibiciones deslumbrantes. |
+| **Velocidad** | Ingesta concurrente, procesamiento event-driven puro y uso de `Server-Sent Events` para fluidez visual sin retrasos. |
+| **Precisión** | Blindaje contra imprecisiones usando `BigDecimal` estricto en el Backend para todos los spreads y comisiones. |
+| **Robustez** | Aislamiento Dockerizado, manejo de caídas de conexión externa y un `Circuit Breaker` de pánico expuesto en el UI. |
+| **Estrategia** | Modelos Multi-Exchange (Spatial) e Intra-Exchange (Triangular) activos en un mismo thread pool. |
+| **Arquitectura** | Desacoplamiento total, microservicios y encapsulamiento REST estricto. |
+| **UX/UI** | Tema oscuro institucional inmersivo, microanimaciones de actualización (Framer), gráficas nativas y Modo DEMO focalizado. |
+
+## ⚠️ Límites Honestos
+
+- El enfoque actual está centrado en `Paper Trading` simulado. Para maximizar la seguridad pública de este repositorio, el código no exige ni aloja la inyección de API Keys firmadas que movilizan dinero real.
+- Las comisiones deducidas usan un modelo Taker general y constante para emular penalizaciones máximas esperadas.
+- En modo `LIVE`, lograr cero ejecuciones matemáticas es un resultado perfectamente exitoso ante un mercado excesivamente lateralizado. **NobaTrade no miente inyectando ganancias irreales si las fricciones superan el spread**, salvo al presionar el modo Demo diseñado para presentación.
 
 ---
 
-## ⚠️ Límites Honestos y Trabajo Futuro
-
-- NobaTrade ejecuta **Paper Trading** basado en datos en vivo; en la fase actual no requiere inyección de API Keys firmadas ni moviliza fondos reales.
-- Las comisiones (Fees) aplicadas en el motor asumen un rango plano conservador (Taker fee global estándar). En producción real, estos variarían según el nivel de cuenta del usuario (Maker/Taker tiers).
-- Si bien NobaTrade cuenta con un "Modo Demo", la ausencia de arbitrajes generados en el "Modo Live" refleja simplemente un entorno de mercado eficiente. **Cero operaciones es un resultado matemáticamente correcto cuando no existen oportunidades rentables post-comisiones.**
-
-<p align="center">
-  <br/>
-  <b>NobaTrade</b> fue diseñado con pasión y precisión matemática.<br/>
-  <i>CODING_CHALLENGE_MEXICO</i>
-</p>
+**Autor:** Joahan Samuel Morales Piña  
+**Proyecto:** NobaTrade · `CODING_CHALLENGE_MEXICO`

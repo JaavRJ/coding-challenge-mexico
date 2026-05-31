@@ -38,7 +38,7 @@ La entrega pública separa con claridad:
 
 | Terminal de Arbitraje (Engine Cockpit) | Landing Page & Documentación Técnica |
 | :---: | :---: |
-| <img src="https://via.placeholder.com/800x450.png?text=Terminal+Screenshot" width="100%" alt="Terminal"> | <img src="https://via.placeholder.com/800x450.png?text=Landing+Page" width="100%" alt="Landing"> |
+| <img src="/image1.png" width="100%" alt="Terminal"> | <img src="/image2.png" width="100%" alt="Landing"> |
 | Vista principal del Cockpit de Motores y tabla histórica de inyecciones financieras. | Explicación técnica animada del modelo en la Landing Page. |
 
 ## ✨ Diferenciadores

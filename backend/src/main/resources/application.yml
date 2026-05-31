@@ -21,8 +21,6 @@ management:
 
 nexustrade:
   engine:
-    min-profit-usd: 5.0
-    max-volume-btc: 0.1
     decision-timeout-ms: 200
     evaluation-interval-ms: 50  # Engine evalúa cada 50ms
 
@@ -40,6 +38,8 @@ nexustrade:
     binance:
       ws-url: "wss://stream.binance.com:9443/stream?streams=btcusdt@depth20@100ms/ethbtc@depth20@100ms/ethusdt@depth20@100ms"
       rest-url: "https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=20"
+      api-key: ${BINANCE_API_KEY:''}
+      api-secret: ${BINANCE_API_SECRET:''}
       fee-maker: 0.001
       fee-taker: 0.001
       withdrawal-fee-btc: 0.0005
@@ -47,6 +47,8 @@ nexustrade:
     kraken:
       ws-url: "wss://ws.kraken.com/v2"
       rest-url: "https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=20"
+      api-key: ${KRAKEN_API_KEY:''}
+      api-secret: ${KRAKEN_API_SECRET:''}
       fee-maker: 0.0016
       fee-taker: 0.0026
       withdrawal-fee-btc: 0.0002
@@ -54,6 +56,8 @@ nexustrade:
     coinbase:
       ws-url: "wss://advanced-trade-ws.coinbase.com"
       rest-url: "https://api.coinbase.com/api/v3/brokerage/best_bid_ask?product_ids=BTC-USD"
+      api-key: ${COINBASE_API_KEY:''}
+      api-secret: ${COINBASE_API_SECRET:''}
       fee-maker: 0.004
       fee-taker: 0.006
       withdrawal-fee-btc: 0.0

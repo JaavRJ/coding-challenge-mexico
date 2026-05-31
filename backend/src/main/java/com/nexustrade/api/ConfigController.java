@@ -41,11 +41,18 @@ public class ConfigController {
     public ResponseEntity<Map<String, Object>> updateConfig(@RequestBody ConfigUpdateRequest request) {
         log.info("⚙ Config update received: {}", request);
 
-        // Update minProfitUsd
-        if (request.minProfitUsd() != null && request.minProfitUsd() > 0) {
-            double old = config.getEngine().getMinProfitUsd();
-            config.getEngine().setMinProfitUsd(request.minProfitUsd());
-            log.info("  ✓ minProfitUsd: {} → {}", old, request.minProfitUsd());
+        // Update walletExposurePct
+        if (request.walletExposurePct() != null && request.walletExposurePct() > 0 && request.walletExposurePct() <= 100) {
+            double old = config.getEngine().getWalletExposurePct();
+            config.getEngine().setWalletExposurePct(request.walletExposurePct());
+            log.info("  ✓ walletExposurePct: {} → {}", old, request.walletExposurePct());
+        }
+
+        // Update minRoiPct
+        if (request.minRoiPct() != null && request.minRoiPct() > 0) {
+            double old = config.getEngine().getMinRoiPct();
+            config.getEngine().setMinRoiPct(request.minRoiPct());
+            log.info("  ✓ minRoiPct: {} → {}", old, request.minRoiPct());
         }
 
         // Update active exchanges
@@ -79,8 +86,8 @@ public class ConfigController {
 
     private Map<String, Object> buildConfigResponse() {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("minProfitUsd", config.getEngine().getMinProfitUsd());
-        result.put("maxVolumeBtc", config.getEngine().getMaxVolumeBtc());
+        result.put("walletExposurePct", config.getEngine().getWalletExposurePct());
+        result.put("minRoiPct", config.getEngine().getMinRoiPct());
         result.put("decisionTimeoutMs", config.getEngine().getDecisionTimeoutMs());
         result.put("activeExchanges", registry.getActiveExchanges());
         return result;

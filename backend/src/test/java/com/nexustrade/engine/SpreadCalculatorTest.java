@@ -32,9 +32,8 @@ public class SpreadCalculatorTest {
         MockitoAnnotations.openMocks(this);
         
         when(engineConfig.getEngine()).thenReturn(engineSettings);
-        when(engineSettings.getMaxVolumeBtc()).thenReturn(0.1);
         when(engineSettings.getDecisionTimeoutMs()).thenReturn(1000L);
-        when(engineSettings.getMinProfitUsd()).thenReturn(5.0);
+        when(engineSettings.getMinRoiPct()).thenReturn(0.01);
 
         SlippageEstimator slippageEstimator = new SlippageEstimator();
         calculator = new SpreadCalculator(slippageEstimator, engineConfig);
@@ -68,7 +67,7 @@ public class SpreadCalculatorTest {
         when(engineConfig.getTakerFee("EX_B")).thenReturn(new BigDecimal("0.001"));
         when(engineConfig.getWithdrawalFee(anyString())).thenReturn(BigDecimal.ZERO);
 
-        Optional<ArbitrageOpportunity> oppOpt = calculator.evaluate(buySnap, sellSnap, System.nanoTime());
+        Optional<ArbitrageOpportunity> oppOpt = calculator.evaluate(buySnap, sellSnap, System.nanoTime(), BigDecimal.valueOf(0.1));
 
         assertTrue(oppOpt.isPresent(), "Opportunity should be evaluated");
         ArbitrageOpportunity opp = oppOpt.get();
@@ -96,7 +95,7 @@ public class SpreadCalculatorTest {
         when(engineConfig.getTakerFee("EX_B")).thenReturn(new BigDecimal("0.002"));
         when(engineConfig.getWithdrawalFee(anyString())).thenReturn(BigDecimal.ZERO);
 
-        Optional<ArbitrageOpportunity> oppOpt = calculator.evaluate(buySnap, sellSnap, System.nanoTime());
+        Optional<ArbitrageOpportunity> oppOpt = calculator.evaluate(buySnap, sellSnap, System.nanoTime(), BigDecimal.valueOf(0.1));
 
         assertTrue(oppOpt.isPresent());
         ArbitrageOpportunity opp = oppOpt.get();
@@ -120,7 +119,7 @@ public class SpreadCalculatorTest {
         when(engineConfig.getTakerFee(anyString())).thenReturn(new BigDecimal("0.001"));
         when(engineConfig.getWithdrawalFee(anyString())).thenReturn(BigDecimal.ZERO);
 
-        Optional<ArbitrageOpportunity> oppOpt = calculator.evaluate(buySnap, sellSnap, System.nanoTime());
+        Optional<ArbitrageOpportunity> oppOpt = calculator.evaluate(buySnap, sellSnap, System.nanoTime(), BigDecimal.valueOf(0.1));
 
         assertTrue(oppOpt.isPresent());
         ArbitrageOpportunity opp = oppOpt.get();

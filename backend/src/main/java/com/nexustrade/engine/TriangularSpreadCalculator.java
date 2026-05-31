@@ -30,13 +30,12 @@ public class TriangularSpreadCalculator {
     public Optional<TriangularOpportunity> calculate(
             OrderBookSnapshot btcUsdt,
             OrderBookSnapshot ethBtc,
-            OrderBookSnapshot ethUsdt) {
+            OrderBookSnapshot ethUsdt,
+            BigDecimal startUsdt) {
 
-        if (btcUsdt == null || ethBtc == null || ethUsdt == null) return Optional.empty();
+        if (btcUsdt == null || ethBtc == null || ethUsdt == null || startUsdt.compareTo(BigDecimal.ZERO) <= 0) return Optional.empty();
 
         long ingestNanos = Math.max(btcUsdt.timestampMs(), Math.max(ethBtc.timestampMs(), ethUsdt.timestampMs()));
-
-        BigDecimal startUsdt = BigDecimal.valueOf(1000.0);
         String exchange = btcUsdt.exchange();
         BigDecimal feeRate = config.getTakerFee(exchange); // usually 0.001 (0.1%)
 
@@ -50,7 +49,7 @@ public class TriangularSpreadCalculator {
         Optional<BigDecimal> btcUsdtVwap = slippageEstimator.estimateBuyVwap(btcUsdt.topAsks(), approxBtcVolume);
         
         if (btcUsdtVwap.isEmpty()) {
-            return Optional.of(createRejected(exchange, ingestNanos, "Insufficient liquidity for USDT->BTC"));
+            return Optional.of(createRejected(exchange, ingestNanos, "Insufficient liquidity for USDT->BTC", startUsdt));
         }
 
         BigDecimal btcAcquired = startUsdt.divide(btcUsdtVwap.get(), 8, RoundingMode.DOWN)
@@ -67,7 +66,7 @@ public class TriangularSpreadCalculator {
         Optional<BigDecimal> ethBtcVwap = slippageEstimator.estimateBuyVwap(ethBtc.topAsks(), approxEthVolume);
 
         if (ethBtcVwap.isEmpty()) {
-            return Optional.of(createRejected(exchange, ingestNanos, "Insufficient liquidity for BTC->ETH"));
+            return Optional.of(createRejected(exchange, ingestNanos, "Insufficient liquidity for BTC->ETH", startUsdt));
         }
 
         BigDecimal ethAcquired = btcAcquired.divide(ethBtcVwap.get(), 8, RoundingMode.DOWN)
@@ -80,7 +79,7 @@ public class TriangularSpreadCalculator {
         Optional<BigDecimal> ethUsdtVwap = slippageEstimator.estimateSellVwap(ethUsdt.topBids(), ethAcquired);
 
         if (ethUsdtVwap.isEmpty()) {
-            return Optional.of(createRejected(exchange, ingestNanos, "Insufficient liquidity for ETH->USDT"));
+            return Optional.of(createRejected(exchange, ingestNanos, "Insufficient liquidity for ETH->USDT", startUsdt));
         }
 
         BigDecimal finalUsdt = ethAcquired.multiply(ethUsdtVwap.get())
@@ -97,14 +96,16 @@ public class TriangularSpreadCalculator {
         TradeStatus status;
         String reason = null;
 
+        BigDecimal requiredProfit = startUsdt.multiply(BigDecimal.valueOf(config.getEngine().getMinRoiPct() / 100.0)).setScale(8, RoundingMode.HALF_UP);
+
         if (latencyMs > config.getEngine().getDecisionTimeoutMs()) {
             status = TradeStatus.REJECTED_LATENCY;
             reason = "Latency " + latencyMs + "ms > limit " + config.getEngine().getDecisionTimeoutMs() + "ms";
-        } else if (netProfit.compareTo(BigDecimal.valueOf(config.getEngine().getMinProfitUsd())) > 0) {
+        } else if (netProfit.compareTo(requiredProfit) > 0) {
             status = TradeStatus.EXECUTED;
         } else {
             status = TradeStatus.REJECTED_FEES;
-            reason = "Net profit " + netProfit.setScale(2, RoundingMode.HALF_UP) + " < " + config.getEngine().getMinProfitUsd();
+            reason = "Net profit " + netProfit.setScale(2, RoundingMode.HALF_UP) + " < " + config.getEngine().getMinRoiPct() + "% ROI target ($" + requiredProfit.setScale(2, RoundingMode.HALF_UP) + ")";
         }
 
         return Optional.of(new TriangularOpportunity(
@@ -113,9 +114,9 @@ public class TriangularSpreadCalculator {
         ));
     }
 
-    private TriangularOpportunity createRejected(String exchange, long ingestNanos, String reason) {
+    private TriangularOpportunity createRejected(String exchange, long ingestNanos, String reason, BigDecimal startUsdt) {
         return new TriangularOpportunity(
-                System.currentTimeMillis(), exchange, BigDecimal.valueOf(1000.0), BigDecimal.ZERO, BigDecimal.ZERO,
+                System.currentTimeMillis(), exchange, startUsdt, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 TradeStatus.REJECTED_LIQUIDITY, reason, System.currentTimeMillis() - ingestNanos
         );

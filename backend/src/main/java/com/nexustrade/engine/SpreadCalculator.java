@@ -50,12 +50,11 @@ public class SpreadCalculator {
      */
     public Optional<ArbitrageOpportunity> evaluate(OrderBookSnapshot buySnapshot,
                                                     OrderBookSnapshot sellSnapshot,
-                                                    long startNanos) {
+                                                    long startNanos,
+                                                    BigDecimal maxVolume) {
         if (!buySnapshot.isValid() || !sellSnapshot.isValid()) {
             return Optional.empty();
         }
-
-        BigDecimal maxVolume = BigDecimal.valueOf(config.getEngine().getMaxVolumeBtc());
 
         // 1. Determine tradeable volume (limited by both sides' liquidity and max config)
         Optional<BigDecimal> volumeOpt = slippageEstimator.maxTradeableVolume(
@@ -123,6 +122,8 @@ public class SpreadCalculator {
         TradeStatus status;
         String rejectionReason = null;
 
+        BigDecimal requiredProfit = buyCostTotal.multiply(BigDecimal.valueOf(config.getEngine().getMinRoiPct() / 100.0), MC);
+
         if (latencyMs > config.getEngine().getDecisionTimeoutMs()) {
             status = TradeStatus.REJECTED_LATENCY;
             rejectionReason = String.format("Latency %dms > %dms timeout",
@@ -134,10 +135,10 @@ public class SpreadCalculator {
             status = TradeStatus.REJECTED_FEES;
             rejectionReason = String.format("Net profit %.2f after fees %.2f",
                     netProfit, feesTotal);
-        } else if (netProfit.compareTo(BigDecimal.valueOf(config.getEngine().getMinProfitUsd())) < 0) {
+        } else if (netProfit.compareTo(requiredProfit) < 0) {
             status = TradeStatus.REJECTED_FEES;
-            rejectionReason = String.format("Net profit $%.2f below minimum $%.2f",
-                    netProfit, config.getEngine().getMinProfitUsd());
+            rejectionReason = String.format("Net profit $%.2f below %.3f%% ROI target ($%.2f)",
+                    netProfit, config.getEngine().getMinRoiPct(), requiredProfit);
         } else {
             status = TradeStatus.EXECUTED;
         }

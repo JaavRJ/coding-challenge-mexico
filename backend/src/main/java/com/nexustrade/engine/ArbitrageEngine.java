@@ -14,7 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -73,8 +73,8 @@ public class ArbitrageEngine {
     public void init() {
         log.info("═══════════════════════════════════════════════════════════");
         log.info("  🧠 ArbitrageEngine starting (Phase 3)");
-        log.info("  Min profit: ${}", config.getEngine().getMinProfitUsd());
-        log.info("  Max volume: {} BTC", config.getEngine().getMaxVolumeBtc());
+        log.info("  Min ROI target: {}%", config.getEngine().getMinRoiPct());
+        log.info("  Wallet exposure: {}%", config.getEngine().getWalletExposurePct());
         log.info("  Circuit breaker: {} losses → {}s pause",
                 config.getRisk().getCircuitBreakerLosses(),
                 config.getRisk().getCircuitBreakerPauseSeconds());
@@ -130,8 +130,29 @@ public class ArbitrageEngine {
 
                 if (sellOn.bestBidPrice().compareTo(buyOn.bestAskPrice()) <= 0) continue;
 
+                BigDecimal maxVolume = BigDecimal.ZERO;
+                com.nexustrade.risk.Wallet buyWallet = walletManager.getWallet(buyOn.exchange());
+                com.nexustrade.risk.Wallet sellWallet = walletManager.getWallet(sellOn.exchange());
+                
+                if (buyWallet != null && sellWallet != null) {
+                    double exposurePct = config.getEngine().getWalletExposurePct() / 100.0;
+                    BigDecimal usdtAvailable = buyWallet.getUsdt().multiply(BigDecimal.valueOf(exposurePct));
+                    BigDecimal btcAvailable = sellWallet.getBtc().multiply(BigDecimal.valueOf(exposurePct));
+                    
+                    BigDecimal buyPrice = buyOn.bestAskPrice();
+                    if (buyPrice.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal affordableBtc = usdtAvailable.divide(buyPrice, 8, java.math.RoundingMode.HALF_DOWN);
+                        maxVolume = affordableBtc.min(btcAvailable);
+                    }
+                }
+
+                // Cap maxVolume to whatever is available on the order books
+                maxVolume = maxVolume.min(buyOn.bestAskVolume()).min(sellOn.bestBidVolume());
+                
+                if (maxVolume.compareTo(BigDecimal.ZERO) <= 0) continue;
+
                 Optional<ArbitrageOpportunity> oppOpt =
-                        spreadCalculator.evaluate(buyOn, sellOn, startNanos);
+                        spreadCalculator.evaluate(buyOn, sellOn, startNanos, maxVolume);
                 oppOpt.ifPresent(opportunities::add);
             }
         }
@@ -147,10 +168,22 @@ public class ArbitrageEngine {
             Optional<com.nexustrade.model.OrderBookSnapshot> ethUsdtSnap = binanceEthUsdt.get().snapshot();
 
             if (btcUsdtSnap.isPresent() && ethBtcSnap.isPresent() && ethUsdtSnap.isPresent()) {
+                BigDecimal startUsdt = BigDecimal.valueOf(0); // Default if wallet missing
+                com.nexustrade.risk.Wallet binanceWallet = walletManager.getWallet("BINANCE");
+                if (binanceWallet != null) {
+                    double exposurePct = config.getEngine().getWalletExposurePct() / 100.0;
+                    startUsdt = binanceWallet.getUsdt().multiply(BigDecimal.valueOf(exposurePct));
+                }
+
+                if (startUsdt.compareTo(BigDecimal.ZERO) <= 0) {
+                    return; // No funds exposed
+                }
+
                 Optional<com.nexustrade.model.TriangularOpportunity> triOpt = triangularCalculator.calculate(
                         btcUsdtSnap.get(),
                         ethBtcSnap.get(),
-                        ethUsdtSnap.get()
+                        ethUsdtSnap.get(),
+                        startUsdt
                 );
                 
                 triOpt.ifPresent(tri -> {

@@ -48,19 +48,21 @@ public class EngineConfig {
     }
 
     public static class Engine {
-        private volatile double minProfitUsd = 5.0;
-        private volatile double maxVolumeBtc = 0.1;
         private volatile long decisionTimeoutMs = 200;
         private volatile long evaluationIntervalMs = 50;
+        
+        // Dynamic Risk properties
+        private volatile double walletExposurePct = 100.0;
+        private volatile double minRoiPct = 0.01;
 
-        public double getMinProfitUsd() { return minProfitUsd; }
-        public void setMinProfitUsd(double v) { this.minProfitUsd = v; }
-        public double getMaxVolumeBtc() { return maxVolumeBtc; }
-        public void setMaxVolumeBtc(double v) { this.maxVolumeBtc = v; }
         public long getDecisionTimeoutMs() { return decisionTimeoutMs; }
         public void setDecisionTimeoutMs(long v) { this.decisionTimeoutMs = v; }
         public long getEvaluationIntervalMs() { return evaluationIntervalMs; }
         public void setEvaluationIntervalMs(long v) { this.evaluationIntervalMs = v; }
+        public double getWalletExposurePct() { return walletExposurePct; }
+        public void setWalletExposurePct(double v) { this.walletExposurePct = v; }
+        public double getMinRoiPct() { return minRoiPct; }
+        public void setMinRoiPct(double v) { this.minRoiPct = v; }
     }
 
     public static class Risk {
@@ -92,6 +94,8 @@ public class EngineConfig {
     public static class ExchangeProps {
         private String wsUrl;
         private String restUrl;
+        private String apiKey = "";
+        private String apiSecret = "";
         private double feeMaker;
         private double feeTaker;
         private double withdrawalFeeBtc;
@@ -100,6 +104,10 @@ public class EngineConfig {
         public void setWsUrl(String v) { this.wsUrl = v; }
         public String getRestUrl() { return restUrl; }
         public void setRestUrl(String v) { this.restUrl = v; }
+        public String getApiKey() { return apiKey; }
+        public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+        public String getApiSecret() { return apiSecret; }
+        public void setApiSecret(String apiSecret) { this.apiSecret = apiSecret; }
         public double getFeeMaker() { return feeMaker; }
         public void setFeeMaker(double v) { this.feeMaker = v; }
         public double getFeeTaker() { return feeTaker; }

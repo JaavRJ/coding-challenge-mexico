@@ -91,21 +91,25 @@ If WebSocket fails 5 times → automatic REST fallback with 10s WS reconnect att
 
 ---
 
-## 🚀 Production Deployment (Vercel + Railway)
+## 🚀 Production Deployment (Vercel + Render)
 
 This project is optimized for cloud deployment with minimal latency.
 
-### 1. Backend Deployment (Railway)
-Railway is recommended for the backend because it provides persistent memory for the WebSocket connections without severe timeouts or cold starts.
+### 1. Backend Deployment (Render)
+Render is an excellent platform for deploying Docker containers directly from GitHub.
 
-1. Create a new project in [Railway](https://railway.app/).
-2. Connect your GitHub repository and select the `backend` folder.
-3. Railway will automatically detect the Dockerfile and build the image.
-4. Go to **Variables** and add:
+1. Create a new account in [Render.com](https://render.com/).
+2. Create a new **Web Service** and connect your GitHub repository.
+3. Set the **Root Directory** to `backend`.
+4. Render will automatically detect the Dockerfile (Runtime: Docker).
+5. Under **Environment Variables**, add:
    - `PORT=8080`
    - `SPRING_PROFILES_ACTIVE=prod`
    - `FRONTEND_URL=https://<your-vercel-domain>.vercel.app`
-5. Go to **Settings > Networking** and generate a Public Domain.
+6. Click Deploy.
+
+**⚠️ IMPORTANT NOTE FOR RENDER FREE TIER:** 
+Render's free tier spins down your application after 15 minutes of inactivity. To keep your Arbitrage Engine running 24/7, go to [cron-job.org](https://cron-job.org/) and create a free cron job that pings your backend URL (`https://<your-render-domain>.onrender.com/api/status`) every 10 minutes.
 
 ### 2. Frontend Deployment (Vercel)
 Vercel is recommended for the Next.js frontend to utilize Edge delivery.
@@ -114,7 +118,7 @@ Vercel is recommended for the Next.js frontend to utilize Edge delivery.
 2. Set the **Framework Preset** to Next.js.
 3. Set the **Root Directory** to `frontend`.
 4. Add the Environment Variable:
-   - `NEXT_PUBLIC_API_URL=https://<your-railway-domain>.up.railway.app`
+   - `NEXT_PUBLIC_API_URL=https://<your-render-domain>.onrender.com`
 5. Deploy.
 
 **Note on WebSockets & SSE:** The backend includes a 15-second heartbeat ping to keep Server-Sent Events (SSE) connections alive behind cloud reverse proxies. CORS is dynamically configured via the `FRONTEND_URL` variable.

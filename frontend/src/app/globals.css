@@ -1,11 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
+@layer base {
+  :root {
+    --background: 260 5% 10%;
+    --foreground: 260 5% 90%;
+    --card: 260 5% 12%;
+    --card-foreground: 260 5% 90%;
+    --popover: 260 5% 12%;
+    --popover-foreground: 260 5% 90%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 13%;
+    --secondary: 260 5% 20%;
+    --secondary-foreground: 260 5% 90%;
+    --muted: 260 5% 20%;
+    --muted-foreground: 260 5% 60%;
+    --accent: 260 5% 25%;
+    --accent-foreground: 260 5% 90%;
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100% / 0.06;
+    --input: 0 0% 100% / 0.08;
+    --ring: 155 70% 50%;
+    --radius: 0.625rem;
+
+    --bid: 155 70% 50%;
+    --ask: 22 80% 55%;
+    --profit: 155 80% 55%;
+    --loss: 22 80% 55%;
+    --warn: 75 70% 55%;
+    --binance: 88 80% 55%;
+    --kraken: 305 70% 55%;
+    --coinbase: 250 70% 55%;
+    --surface: 0 0% 100% / 0.02;
+    --surface-2: 0 0% 100% / 0.04;
+    --grid-line: 0 0% 100% / 0.06;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  .font-mono, code, kbd, samp, pre, .nx-num {
+    font-family: 'JetBrains Mono', ui-monospace, 'Fira Code', monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "zero";
+  }
 }
 
-body {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+@layer utilities {
+  .nx-panel {
+    background-color: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
+  }
+  .nx-panel-strong {
+    background-color: hsl(var(--surface-2));
+    border: 1px solid hsl(var(--border));
+  }
+  .nx-hairline { border-color: hsl(var(--border)); }
+  
+  @keyframes nx-flash-green {
+    0% { background-color: hsla(155, 80%, 55%, 0.28); }
+    100% { background-color: transparent; }
+  }
+  .nx-flash { animation: nx-flash-green 1.6s ease-out; }
+  
+  @keyframes nx-breaker-pulse {
+    0%,100% { box-shadow: inset 0 0 0 1px hsla(22, 80%, 55%, 0.5); background-color: hsla(22, 80%, 55%, 0.05); }
+    50% { box-shadow: inset 0 0 0 1px hsla(22, 80%, 55%, 1); background-color: hsla(22, 80%, 55%, 0.15); }
+  }
+  .nx-breaker-alarm { animation: nx-breaker-pulse 1.4s ease-in-out infinite; }
 }

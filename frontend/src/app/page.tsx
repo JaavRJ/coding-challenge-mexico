@@ -276,8 +276,9 @@ export default function Page() {
 
   useEffect(() => { fetchData(); const iv = setInterval(fetchData, 1000); return () => clearInterval(iv) }, [fetchData])
 
-  const pnl = tradeEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0) +
-              triangularEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0)
+  const basePnl = tradeEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0) +
+                  triangularEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0)
+  const pnl = basePnl + fakeOffsets.profit
 
   const updateEngineConfig = async (walletExposurePct: number, minRoiPct: number, activeExchanges: string[]) => {
     const res = await fetch(`${API_BASE}/api/config`, {

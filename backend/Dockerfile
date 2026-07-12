@@ -23,8 +23,8 @@ RUN addgroup -S nexustrade && adduser -S nexustrade -G nexustrade
 
 WORKDIR /app
 
-# Data directory for JSONL persistence
-RUN mkdir -p /app/data && chown nexustrade:nexustrade /app/data
+# Data directory for persistence
+RUN mkdir -p /app/data && chown -R nexustrade:nexustrade /app/data && chmod 777 /app/data
 
 COPY --from=builder /build/target/*.jar app.jar
 RUN chown nexustrade:nexustrade app.jar

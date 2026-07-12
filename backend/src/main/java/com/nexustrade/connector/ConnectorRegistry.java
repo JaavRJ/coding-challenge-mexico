@@ -28,8 +28,8 @@ public class ConnectorRegistry {
     private final List<AbstractExchangeConnector> connectors;
     private Consumer<OrderBook> globalUpdateCallback;
 
-    // Virtual thread executor — one per connector
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    // Executor service — compatible with Java 17+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public ConnectorRegistry(
             BinanceConnector binance,

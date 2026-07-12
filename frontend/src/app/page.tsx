@@ -9,6 +9,10 @@ import { WalletsPanel as NexusWalletsPanel } from "@/components/nexus/WalletsPan
 import { Cockpit } from "@/components/nexus/Cockpit"
 import { ArbitrageMatrix as NexusArbitrageMatrix } from "@/components/nexus/ArbitrageMatrix"
 import { LiveHistory } from "@/components/nexus/TradeHistory"
+import { StickyConfigPanel } from "@/components/nexus/StickyConfigPanel"
+import { PerformanceAnalyticsPanel } from "@/components/nexus/PerformanceAnalyticsPanel"
+import { ExecutedTradesFeed } from "@/components/nexus/ExecutedTradesFeed"
+import { TradingChart } from '@/components/nexus/TradingChart'
 import { History, BarChart3, RefreshCw, Zap } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -18,7 +22,7 @@ interface OrderBookData { exchange: string; symbol: string; bestBid: string | nu
 interface ConnectorStatus { state: string; healthy: boolean; wsActive: boolean }
 interface SystemStatus { timestamp: string; uptimeSeconds: number; liveConnectors: number; allHealthy: boolean; connectors: Record<string, ConnectorStatus> }
 interface WalletData { usdt: number; btc: number }
-interface EngineStats { totalEvaluations: number; totalOpportunities: number; totalExecuted: number; totalRejected: number; circuitBreakerActive: boolean; circuitBreakerPauseMs: number; wallets: Record<string, WalletData> }
+interface EngineStats { totalEvaluations: number; totalOpportunities: number; totalExecuted: number; totalNetProfit?: number; totalRejected: number; circuitBreakerActive: boolean; circuitBreakerPauseMs: number; wallets: Record<string, WalletData> }
 interface TradeEvent { timestampMs: number; buyExchange: string; sellExchange: string; buyPrice: number; sellPrice: number; volume: number; grossSpread: number; feesTotal: number; netProfit: number; spreadPct: number; status: string; rejectionReason: string | null; decisionLatencyMs: number }
 interface TriangularEvent { timestampMs: number; exchange: string; startUsdt: number; btcAmount: number; ethAmount: number; finalUsdt: number; feesTotal: number; netProfit: number; spreadPct: number; status: string; rejectionReason: string | null; decisionLatencyMs: number }
 interface LiveConfig { minProfitUsd: number; maxVolumeBtc: number; autoScalingEnabled: boolean; walletExposurePct: number; minRoiPct: number; decisionTimeoutMs: number; activeExchanges: string[] }
@@ -261,23 +265,34 @@ export default function Page() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [booksRes, statusRes, engineRes, configRes] = await Promise.all([
+      const [booksRes, statusRes, engineRes, configRes, historyRes] = await Promise.all([
         fetch(`${API_BASE}/api/orderbooks`),
         fetch(`${API_BASE}/api/status`),
         fetch(`${API_BASE}/api/engine`),
         fetch(`${API_BASE}/api/config`),
+        fetch(`${API_BASE}/api/history?limit=100`),
       ])
       if (booksRes.ok) setOrderBooks(await booksRes.json())
       if (statusRes.ok) setStatus(await statusRes.json())
       if (engineRes.ok) setEngineStats(await engineRes.json())
       if (configRes.ok) setLiveConfig(await configRes.json())
+      if (historyRes.ok) {
+        const data = await historyRes.json()
+        if (Array.isArray(data)) {
+          const direct = data.filter((e: any) => e.type !== 'TRIANGULAR') as unknown as TradeEvent[]
+          const triangular = data.filter((e: any) => e.type === 'TRIANGULAR') as unknown as TriangularEvent[]
+          setTradeEvents(direct)
+          setTriangularEvents(triangular)
+        }
+      }
     } catch {}
   }, [])
 
-  useEffect(() => { fetchData(); const iv = setInterval(fetchData, 1000); return () => clearInterval(iv) }, [fetchData])
+  useEffect(() => { fetchData(); const iv = setInterval(fetchData, 4000); return () => clearInterval(iv) }, [fetchData])
 
-  const basePnl = tradeEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0) +
-                  triangularEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0)
+  const dbPnl = engineStats?.totalNetProfit ?? 0;
+  const basePnl = dbPnl > 0 ? dbPnl : (tradeEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0) +
+                  triangularEvents.reduce((sum, e) => e.status === 'EXECUTED' ? sum + e.netProfit : sum, 0));
   const pnl = basePnl + fakeOffsets.profit
 
   const updateEngineConfig = async (walletExposurePct: number, minRoiPct: number, activeExchanges: string[]) => {
@@ -352,6 +367,15 @@ export default function Page() {
 
             {view === 'terminal' && (
               <div className="space-y-6">
+                <TradingChart executedTrades={tradeEvents
+                  .filter(e => e.status === 'EXECUTED')
+                  .map(e => ({
+                    ts: e.timestampMs,
+                    netProfit: e.netProfit,
+                    buyExchange: e.buyExchange,
+                    sellExchange: e.sellExchange
+                  }))} />
+
                 <OrderBooksGrid books={orderBooks.map(b => ({...b, exchange: b.exchange.toLowerCase()}))} />
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -374,7 +398,16 @@ export default function Page() {
                       onFlashCrash={triggerShock}
                     />
                     <button
-                      onClick={() => setDemoMode(!demoMode)}
+                      onClick={() => {
+                        if (demoMode) {
+                          setDemoMode(false);
+                          setFakeOffsets({ executed: 0, profit: 0, opps: 0 });
+                          setFakeTradeEvents([]);
+                          setFakeTriangularEvents([]);
+                        } else {
+                          setDemoMode(true);
+                        }
+                      }}
                       className={`w-full py-3 text-xs font-bold uppercase tracking-widest transition-colors ${demoMode ? 'bg-profit text-black' : 'bg-surface border border-foreground/10 text-foreground/50 hover:text-foreground'}`}
                     >
                       {demoMode ? '■ Detener Modo Demo' : '▶ Iniciar Modo Demo'}
@@ -400,6 +433,19 @@ export default function Page() {
                   kraken: { totalUsd: (engineStats?.wallets?.KRAKEN?.usdt || 10000) + (fakeOffsets.profit / 3), btcBalance: engineStats?.wallets?.KRAKEN?.btc || 0.15 },
                   coinbase: { totalUsd: (engineStats?.wallets?.COINBASE?.usdt || 10000) + (fakeOffsets.profit / 3), btcBalance: engineStats?.wallets?.COINBASE?.btc || 0.15 }
                 }} />
+
+                {/* Sticky side panel — config + rebalancing */}
+                <StickyConfigPanel apiBase={API_BASE} />
+
+                {/* Co-Piloto IA: Operaciones Ejecutadas y Explicadas */}
+                <ExecutedTradesFeed apiBase={API_BASE} />
+
+                {/* DÍA 3-4: Gráfica de P&L Acumulado y Desglose de Rechazos */}
+                <PerformanceAnalyticsPanel 
+                  apiBase={API_BASE} 
+                  direct={combinedTradeEvents} 
+                  triangular={combinedTriangularEvents} 
+                />
 
                 <LiveHistory 
                   direct={combinedTradeEvents.map(e => ({

@@ -74,6 +74,7 @@ public class StatusController {
         stats.put("totalEvaluations", engine.getTotalEvaluations());
         stats.put("totalOpportunities", engine.getTotalOpportunities());
         stats.put("totalExecuted", engine.getTotalExecuted());
+        stats.put("totalNetProfit", engine.getTotalNetProfit());
         stats.put("totalRejected", engine.getTotalRejected());
         stats.put("circuitBreakerActive", circuitBreaker.isActive());
         stats.put("circuitBreakerPauseMs", circuitBreaker.getRemainingPauseMs());

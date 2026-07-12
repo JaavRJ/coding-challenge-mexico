@@ -13,6 +13,7 @@ export interface EngineStats {
   totalEvaluations: number;
   totalOpportunities: number;
   totalExecuted: number;
+  totalNetProfit?: number;
   totalRejected: number;
   circuitBreakerActive: boolean;
   circuitBreakerPauseMs: number;

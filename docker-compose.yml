@@ -12,6 +12,9 @@ services:
       - ./data:/app/data   # Persist JSONL events logs
     environment:
       - JAVA_OPTS=-server -XX:+UseZGC -Xms512m -Xmx2g -Dspring.threads.virtual.enabled=true
+      - DATABASE_URL=${DATABASE_URL:-jdbc:h2:file:/tmp/nobatrade;DB_CLOSE_DELAY=-1}
+      - DB_USERNAME=${DB_USERNAME:-sa}
+      - DB_PASSWORD=${DB_PASSWORD:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]

@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ArbitrageEngine {
 
     private static final Logger log = LoggerFactory.getLogger(ArbitrageEngine.class);
-    private static final String[] EXCHANGES = {"BINANCE", "KRAKEN", "COINBASE"};
+    private static final String[] EXCHANGES = {"BINANCE", "KRAKEN", "COINBASE", "BITFINEX", "OKX"};
 
     private final ConnectorRegistry registry;
     private final SpreadCalculator spreadCalculator;
@@ -49,6 +49,13 @@ public class ArbitrageEngine {
     private volatile long lastLogTimeMs = 0;
     private static final long LOG_INTERVAL_MS = 5000;
 
+    private final com.nexustrade.persistence.DatabasePersistenceService dbPersistence;
+    private final com.nexustrade.websocket.TradeBroadcaster wsBroadcaster;
+    private final com.nexustrade.persistence.TradeRepository tradeRepo;
+    private final AnomalyDetector anomalyDetector;
+    private final ConfidenceScorer confidenceScorer;
+    private final com.nexustrade.notifications.TelegramNotificationService telegramService;
+
     public ArbitrageEngine(ConnectorRegistry registry,
                            SpreadCalculator spreadCalculator,
                            EngineConfig config,
@@ -57,7 +64,13 @@ public class ArbitrageEngine {
                            ShadowLearningRecorder recorder,
                            LatencyTracker latencyTracker,
                            DashboardController dashboardController,
-                           TriangularSpreadCalculator triangularCalculator) {
+                           TriangularSpreadCalculator triangularCalculator,
+                           com.nexustrade.persistence.DatabasePersistenceService dbPersistence,
+                           com.nexustrade.websocket.TradeBroadcaster wsBroadcaster,
+                           com.nexustrade.persistence.TradeRepository tradeRepo,
+                           AnomalyDetector anomalyDetector,
+                           ConfidenceScorer confidenceScorer,
+                           com.nexustrade.notifications.TelegramNotificationService telegramService) {
         this.registry = registry;
         this.spreadCalculator = spreadCalculator;
         this.config = config;
@@ -67,6 +80,12 @@ public class ArbitrageEngine {
         this.latencyTracker = latencyTracker;
         this.dashboardController = dashboardController;
         this.triangularCalculator = triangularCalculator;
+        this.dbPersistence = dbPersistence;
+        this.wsBroadcaster = wsBroadcaster;
+        this.tradeRepo = tradeRepo;
+        this.anomalyDetector = anomalyDetector;
+        this.confidenceScorer = confidenceScorer;
+        this.telegramService = telegramService;
     }
 
     @PostConstruct
@@ -80,6 +99,11 @@ public class ArbitrageEngine {
                 config.getRisk().getCircuitBreakerPauseSeconds());
         log.info("  Wallet: {} USDT + {} BTC per exchange",
                 config.getWallet().getInitialUsdt(), config.getWallet().getInitialBtc());
+        try {
+            long count = tradeRepo.countExecuted();
+            totalExecuted.set(count);
+            log.info("  📊 Restored {} executed trades from database", count);
+        } catch (Exception e) {}
         log.info("═══════════════════════════════════════════════════════════");
 
         registry.setGlobalUpdateCallback(orderBook -> {
@@ -195,12 +219,14 @@ public class ArbitrageEngine {
                 latencyTracker.recordDecisionLatency(finalTri.decisionLatencyMs());
                 recorder.record(finalTri);
                 dashboardController.broadcastTriangular(finalTri);
+                wsBroadcaster.broadcastTrade(finalTri);
                 
                 if (finalTri.isProfitable()) {
                     boolean traded = walletManager.executeTriangularTrade(finalTri);
                     if (traded) {
                         totalExecuted.incrementAndGet();
                         circuitBreaker.recordProfit();
+                        dbPersistence.recordTriangularTrade(finalTri);
                         log.info("[ArbitrageEngine] {}", finalTri);
                     } else {
                         totalRejected.incrementAndGet();
@@ -227,17 +253,38 @@ public class ArbitrageEngine {
             latencyTracker.recordDecisionLatency(finalOpp.decisionLatencyMs());
             latencyTracker.recordGrossSpread(finalOpp.grossSpread().doubleValue());
 
-            // Record to JSONL + SSE broadcast
+            // Record to JSONL + SSE + WS
             recorder.record(finalOpp);
             dashboardController.broadcast(finalOpp);
+            wsBroadcaster.broadcastTrade(finalOpp);
 
             if (finalOpp.isProfitable()) {
+                // Calculate AI confidence score and anomaly level
+                AnomalyDetector.AnomalyResult anomaly = anomalyDetector.analyze(
+                        finalOpp.buyExchange(), finalOpp.sellExchange(),
+                        finalOpp.grossSpread().doubleValue());
+                int aiScore = confidenceScorer.score(
+                        finalOpp.grossSpread().doubleValue(),
+                        config.getEngine().getMinRoiPct(),
+                        finalOpp.volume().doubleValue() * 60000.0, // approx USDT
+                        10, 10, // depth levels approximation
+                        finalOpp.decisionLatencyMs(), anomaly.level());
+
                 // Execute simulated trade
                 boolean traded = walletManager.executeTrade(finalOpp);
                 if (traded) {
                     totalExecuted.incrementAndGet();
                     circuitBreaker.recordProfit();
-                    log.info("[ArbitrageEngine] {}", finalOpp);
+                    dbPersistence.recordDirectTrade(finalOpp);
+                    dbPersistence.setAiScore(finalOpp, aiScore);
+                    // Telegram alert
+                    telegramService.sendTradeAlert(
+                            finalOpp.buyExchange(), finalOpp.sellExchange(),
+                            finalOpp.netProfit(), finalOpp.grossSpread().doubleValue(),
+                            finalOpp.decisionLatencyMs(), aiScore,
+                            getTotalNetProfit());
+                    log.info("[ArbitrageEngine] ✅ Trade | AI={}/100 | Anomaly={} | {}",
+                            aiScore, anomaly.level(), finalOpp);
                 } else {
                     totalRejected.incrementAndGet();
                     circuitBreaker.recordLoss();
@@ -267,6 +314,11 @@ public class ArbitrageEngine {
 
     public long getTotalEvaluations() { return totalEvaluations.get(); }
     public long getTotalOpportunities() { return totalOpportunities.get(); }
-    public long getTotalExecuted() { return totalExecuted.get(); }
+    public long getTotalExecuted() {
+        try { return tradeRepo.countExecuted(); } catch (Exception e) { return totalExecuted.get(); }
+    }
+    public java.math.BigDecimal getTotalNetProfit() {
+        try { return tradeRepo.sumNetProfit(); } catch (Exception e) { return java.math.BigDecimal.ZERO; }
+    }
     public long getTotalRejected() { return totalRejected.get(); }
 }

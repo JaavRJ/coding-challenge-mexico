@@ -5,10 +5,13 @@ import com.nexustrade.model.ArbitrageOpportunity;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,15 +24,29 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WalletManager {
 
     private static final Logger log = LoggerFactory.getLogger(WalletManager.class);
-    private static final String[] EXCHANGES = {"BINANCE", "KRAKEN", "COINBASE"};
+    private static final String[] EXCHANGES = {"BINANCE", "KRAKEN", "COINBASE", "BITFINEX", "OKX"};
 
     private final EngineConfig config;
     private final Map<String, Wallet> wallets = new ConcurrentHashMap<>();
 
     private BigDecimal initialTotalUsdt;
 
-    public WalletManager(EngineConfig config) {
+    /**
+     * Injected lazily to break the potential circular dependency:
+     * WalletManager → RebalancingService (none currently, but future-proof).
+     */
+    private RebalancingService rebalancingService;
+
+    private final com.nexustrade.persistence.WalletSnapshotRepository walletSnapshotRepo;
+
+    public WalletManager(EngineConfig config, com.nexustrade.persistence.WalletSnapshotRepository walletSnapshotRepo) {
         this.config = config;
+        this.walletSnapshotRepo = walletSnapshotRepo;
+    }
+
+    @Autowired
+    public void setRebalancingService(@Lazy RebalancingService rebalancingService) {
+        this.rebalancingService = rebalancingService;
     }
 
     @PostConstruct
@@ -38,14 +55,40 @@ public class WalletManager {
         double btc = config.getWallet().getInitialBtc();
 
         for (String ex : EXCHANGES) {
+            try {
+                java.util.List<com.nexustrade.persistence.WalletSnapshotEntity> snaps =
+                        walletSnapshotRepo.findTop10ByExchangeOrderByTsDesc(ex);
+                if (!snaps.isEmpty()) {
+                    com.nexustrade.persistence.WalletSnapshotEntity latest = snaps.get(0);
+                    wallets.put(ex, new Wallet(ex, latest.getUsdtBalance().doubleValue(), latest.getBtcBalance().doubleValue()));
+                    log.info("📊 Restored wallet {}: {} USDT, {} BTC", ex, latest.getUsdtBalance(), latest.getBtcBalance());
+                    continue;
+                }
+            } catch (Exception e) {
+                log.warn("Could not restore wallet for {}: {}", ex, e.getMessage());
+            }
             wallets.put(ex, new Wallet(ex, usdt, btc));
         }
 
-        // Will be updated dynamically on first evaluation
         initialTotalUsdt = null;
 
-        log.info("💰 WalletManager initialized: {} USDT + {} BTC per exchange ({})",
-                usdt, btc, EXCHANGES.length);
+        log.info("💰 WalletManager initialized across {} exchanges", EXCHANGES.length);
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 30000)
+    public void persistWalletState() {
+        wallets.forEach((exchange, wallet) -> {
+            try {
+                com.nexustrade.persistence.WalletSnapshotEntity snap = new com.nexustrade.persistence.WalletSnapshotEntity();
+                snap.setExchange(exchange);
+                snap.setUsdtBalance(wallet.getUsdt());
+                snap.setBtcBalance(wallet.getBtc());
+                snap.setTotalUsdValue(wallet.getUsdt().add(wallet.getBtc().multiply(BigDecimal.valueOf(65000))));
+                walletSnapshotRepo.save(snap);
+            } catch (Exception e) {
+                log.debug("Could not save wallet snapshot: {}", e.getMessage());
+            }
+        });
     }
 
     /**
@@ -101,9 +144,21 @@ public class WalletManager {
         return false;
     }
 
-    /** Check if wallets need rebalancing (asymmetry > 40%) */
+    /** Check if wallets need rebalancing (asymmetry > configured threshold). */
     private void checkRebalance(BigDecimal btcPrice) {
-        double threshold = config.getRisk().getRebalanceThresholdPct() / 100.0;
+        double thresholdPct = config.getRisk().getRebalanceThresholdPct();
+
+        // Delegate to RebalancingService when available (preferred path)
+        if (rebalancingService != null) {
+            boolean rebalanced = rebalancingService.checkAndRebalance(wallets, btcPrice, thresholdPct);
+            if (rebalanced) {
+                log.info("🔄 RebalancingService executed auto-rebalance (threshold={}%)", thresholdPct);
+            }
+            return;
+        }
+
+        // Fallback legacy path (no RebalancingService injected yet)
+        double threshold = thresholdPct / 100.0;
         BigDecimal totalBtc = BigDecimal.ZERO;
 
         for (Wallet w : wallets.values()) {
@@ -178,4 +233,12 @@ public class WalletManager {
     }
 
     public Wallet getWallet(String exchange) { return wallets.get(exchange); }
+
+    /**
+     * Returns an unmodifiable view of all wallets, keyed by exchange name.
+     * Used by {@link RebalancingService} and {@link com.nexustrade.api.RebalancingController}.
+     */
+    public Map<String, Wallet> getAllWallets() {
+        return Collections.unmodifiableMap(wallets);
+    }
 }

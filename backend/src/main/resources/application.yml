@@ -1,9 +1,19 @@
 spring:
   application:
-    name: nexustrade
+    name: nobatrade
   threads:
     virtual:
       enabled: true  # Java 21 Virtual Threads — Project Loom
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:file:/tmp/nobatrade;DB_CLOSE_DELAY=-1}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    database-platform: ${JPA_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
 
 server:
   port: 8080
@@ -22,7 +32,7 @@ management:
 nexustrade:
   engine:
     decision-timeout-ms: 200
-    evaluation-interval-ms: 50  # Engine evalúa cada 50ms
+    evaluation-interval-ms: 500  # Engine evalúa cada 500ms (reducido para ahorrar bandwidth)
 
   risk:
     circuit-breaker-losses: 3
@@ -36,7 +46,7 @@ nexustrade:
 
   exchanges:
     binance:
-      ws-url: "wss://stream.binance.com:9443/stream?streams=btcusdt@depth20@100ms/ethbtc@depth20@100ms/ethusdt@depth20@100ms"
+      ws-url: "wss://stream.binance.com:9443/stream?streams=btcusdt@depth20@1000ms/ethbtc@depth20@1000ms/ethusdt@depth20@1000ms"
       rest-url: "https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=20"
       api-key: ${BINANCE_API_KEY:''}
       api-secret: ${BINANCE_API_SECRET:''}
@@ -62,9 +72,29 @@ nexustrade:
       fee-taker: 0.006
       withdrawal-fee-btc: 0.0
 
+    bitfinex:
+      ws-url: "wss://api-pub.bitfinex.com/ws/2"
+      rest-url: "https://api-pub.bitfinex.com/v2/book/tBTCUSD/P0"
+      fee-maker: 0.001
+      fee-taker: 0.002
+      withdrawal-fee-btc: 0.0004
+
+    okx:
+      ws-url: "wss://ws.okx.com:8443/ws/v5/public"
+      rest-url: "https://www.okx.com/api/v5/market/books?instId=BTC-USDT"
+      fee-maker: 0.0008
+      fee-taker: 0.001
+      withdrawal-fee-btc: 0.0003
+
   persistence:
     events-file: "./data/events.jsonl"
     max-history-size: 10000
+
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:}
+  chat:
+    id: ${TELEGRAM_CHAT_ID:}
 
 logging:
   level:

@@ -2,91 +2,198 @@ package com.nexustrade.connector;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nexustrade.model.OrderBook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
 
-import com.nexustrade.model.OrderBook;
-
+/**
+ * Bitfinex WebSocket connector for BTC/USDT order book.
+ * Uses Bitfinex WebSocket API v2:
+ * Channel: book, symbol: tBTCUSD, precision: P0, len: 25
+ *
+ * Protocol reference:
+ *   https://docs.bitfinex.com/reference/ws-public-books
+ *
+ * Snapshot: [chanId, [[price, count, amount], ...]]
+ * Update:   [chanId, [price, count, amount]]
+ *   - count > 0, amount > 0  => bid level
+ *   - count > 0, amount < 0  => ask level
+ *   - count = 0              => remove price level
+ *
+ * REST fallback: GET https://api-pub.bitfinex.com/v2/book/tBTCUSD/P0
+ *   Returns [[price, count, amount], ...]
+ */
 @Component
 public class BitfinexConnector extends AbstractExchangeConnector {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private final BigDecimal priceOffset;
+    private static final String SYMBOL = "BTC/USDT";
+
+    // Local mirrors used to rebuild the OrderBook on every update
+    private final ConcurrentSkipListMap<BigDecimal, BigDecimal> bids =
+            new ConcurrentSkipListMap<>(Comparator.reverseOrder());
+    private final ConcurrentSkipListMap<BigDecimal, BigDecimal> asks =
+            new ConcurrentSkipListMap<>();
+
+    private volatile boolean snapshotReceived = false;
 
     public BitfinexConnector(
-            @Value("${nexustrade.exchanges.binance.ws-url}") String wsUrl,
-            @Value("${nexustrade.exchanges.binance.rest-url}") String restUrl) {
-        // Using binance url for mock data generation
-        super("BITFINEX", wsUrl, restUrl, "BTC/USDT");
-        this.orderBooks.put("ETH/BTC", new com.nexustrade.model.OrderBook("BITFINEX", "ETH/BTC"));
-        this.orderBooks.put("ETH/USDT", new com.nexustrade.model.OrderBook("BITFINEX", "ETH/USDT"));
-        this.priceOffset = new BigDecimal("1.25"); // Synthetic spread
+            @Value("${nexustrade.exchanges.bitfinex.ws-url:wss://api-pub.bitfinex.com/ws/2}") String wsUrl,
+            @Value("${nexustrade.exchanges.bitfinex.rest-url:https://api-pub.bitfinex.com/v2/book/tBTCUSD/P0}") String restUrl) {
+        super("BITFINEX", wsUrl, restUrl, SYMBOL);
     }
+
+    // -------------------------------------------------------------------------
+    // WebSocket lifecycle
+    // -------------------------------------------------------------------------
 
     @Override
     protected void onWebSocketOpen() {
-        log.info("[BITFINEX] Subscribed to mock streams via URL: {}", wsUrl);
+        snapshotReceived = false;
+        bids.clear();
+        asks.clear();
+        String sub = "{\"event\":\"subscribe\",\"channel\":\"book\",\"symbol\":\"tBTCUSD\","
+                + "\"prec\":\"P0\",\"freq\":\"F0\",\"len\":\"25\"}";
+        sendWsMessage(sub);
+        log.info("[BITFINEX] Sent book subscription for tBTCUSD");
     }
 
     @Override
     protected void handleWebSocketMessage(String message, long ingestNanos) {
-        Optional<JsonNode> rootOpt = parseJson(message);
-        if (rootOpt.isEmpty()) return;
+        try {
+            JsonNode root = MAPPER.readTree(message);
 
-        JsonNode root = rootOpt.get();
-        JsonNode dataNode = root.has("data") ? root.get("data") : root;
-        String streamName = root.has("stream") ? root.get("stream").asText() : "btcusdt";
-        
-        String symbol = "BTC/USDT";
-        if (streamName.startsWith("ethbtc")) symbol = "ETH/BTC";
-        else if (streamName.startsWith("ethusdt")) symbol = "ETH/USDT";
+            // -- Object messages: events (info, subscribed, error, pong) ------
+            if (root.isObject()) {
+                String event = root.path("event").asText("");
+                if ("subscribed".equals(event)) {
+                    log.info("[BITFINEX] Subscribed to book channel, chanId={}",
+                            root.path("chanId").asInt(-1));
+                } else if ("error".equals(event)) {
+                    log.warn("[BITFINEX] Subscription error {}: {}",
+                            root.path("code").asInt(), root.path("msg").asText());
+                }
+                // info, pong, etc. -- ignore
+                return;
+            }
 
-        OrderBook orderBook = orderBooks.get(symbol);
-        if (orderBook == null) return;
+            // -- Array messages: [chanId, data] --------------------------------
+            if (!root.isArray() || root.size() < 2) return;
+            JsonNode payload = root.get(1);
 
-        JsonNode bidsNode = dataNode.path("bids");
-        JsonNode asksNode = dataNode.path("asks");
+            // Heartbeat
+            if (payload.isTextual() && "hb".equals(payload.asText())) return;
 
-        if (bidsNode.isMissingNode() || asksNode.isMissingNode()) return;
+            if (!snapshotReceived) {
+                // Snapshot: payload is array of [price, count, amount] arrays
+                bids.clear();
+                asks.clear();
+                for (JsonNode entry : payload) {
+                    applyEntry(entry);
+                }
+                snapshotReceived = true;
+                log.info("[BITFINEX] Book snapshot received -- bids={}, asks={}", bids.size(), asks.size());
+            } else {
+                // Delta update: payload is a single [price, count, amount]
+                applyEntry(payload);
+            }
 
-        orderBook.replaceBids(parseOrderBookSide(bidsNode, symbol.equals("BTC/USDT") ? priceOffset : new BigDecimal("0.0001")));
-        orderBook.replaceAsks(parseOrderBookSide(asksNode, symbol.equals("BTC/USDT") ? priceOffset : new BigDecimal("0.0001")));
+            pushOrderBook();
 
-        notifyUpdate(orderBook);
+        } catch (Exception e) {
+            log.warn("[BITFINEX] Parse error: {}", e.getMessage());
+        }
     }
+
+    // -------------------------------------------------------------------------
+    // REST fallback
+    // -------------------------------------------------------------------------
 
     @Override
     protected void handleRestResponse(String responseBody, long ingestNanos) {
-        handleWebSocketMessage(responseBody, ingestNanos);
-    }
-
-    private java.util.Map<BigDecimal, BigDecimal> parseOrderBookSide(JsonNode levelsNode, BigDecimal offset) {
-        var levels = new java.util.HashMap<BigDecimal, BigDecimal>();
-        if (levelsNode == null || !levelsNode.isArray()) return levels;
-
-        for (JsonNode level : levelsNode) {
-            try {
-                if (level.size() < 2) continue;
-                BigDecimal price = new BigDecimal(level.get(0).asText()).add(offset);
-                BigDecimal volume = new BigDecimal(level.get(1).asText());
-                if (price.compareTo(BigDecimal.ZERO) > 0 && volume.compareTo(BigDecimal.ZERO) >= 0) {
-                    levels.put(price, volume);
-                }
-            } catch (NumberFormatException e) {
-                // ignore
-            }
-        }
-        return levels;
-    }
-
-    private Optional<JsonNode> parseJson(String message) {
+        // REST returns [[price, count, amount], ...] -- same layout as WS snapshot
         try {
-            return Optional.of(MAPPER.readTree(message));
+            JsonNode root = MAPPER.readTree(responseBody);
+            if (!root.isArray()) return;
+
+            bids.clear();
+            asks.clear();
+            for (JsonNode entry : root) {
+                applyEntry(entry);
+            }
+
+            pushOrderBook();
+            log.debug("[BITFINEX] REST fallback book parsed -- bids={}, asks={}", bids.size(), asks.size());
+
         } catch (Exception e) {
-            return Optional.empty();
+            log.warn("[BITFINEX] REST parse error: {}", e.getMessage());
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Applies a single [price, count, amount] entry to the local bid/ask maps.
+     * Rules per Bitfinex protocol:
+     *   count > 0, amount > 0  => bid
+     *   count > 0, amount < 0  => ask  (stored as positive quantity)
+     *   count = 0              => remove price level from both sides
+     */
+    private void applyEntry(JsonNode entry) {
+        if (!entry.isArray() || entry.size() < 3) return;
+
+        BigDecimal price  = entry.get(0).decimalValue();
+        int        count  = entry.get(1).asInt();
+        BigDecimal amount = entry.get(2).decimalValue();
+
+        if (count > 0) {
+            if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                bids.put(price, amount);
+                asks.remove(price);
+            } else {
+                asks.put(price, amount.negate());
+                bids.remove(price);
+            }
+        } else {
+            // count == 0 => remove level
+            bids.remove(price);
+            asks.remove(price);
+        }
+    }
+
+    /**
+     * Rebuilds the OrderBook from the local maps and fires the update callback.
+     */
+    private void pushOrderBook() {
+        OrderBook book = orderBooks.get(SYMBOL);
+        if (book == null) return;
+
+        Map<BigDecimal, BigDecimal> bidSnapshot = new LinkedHashMap<>();
+        bids.entrySet().stream().limit(20)
+                .forEach(e -> bidSnapshot.put(e.getKey(), e.getValue()));
+
+        Map<BigDecimal, BigDecimal> askSnapshot = new LinkedHashMap<>();
+        asks.entrySet().stream().limit(20)
+                .forEach(e -> askSnapshot.put(e.getKey(), e.getValue()));
+
+        book.replaceBids(bidSnapshot);
+        book.replaceAsks(askSnapshot);
+
+        logBestPrices(book);
+        notifyUpdate(book);
+    }
+
+    private void logBestPrices(OrderBook book) {
+        book.bestBidPrice().ifPresent(bid ->
+                book.bestAskPrice().ifPresent(ask ->
+                        log.debug("[BITFINEX] Bid={} Ask={}", bid.toPlainString(), ask.toPlainString())
+                )
+        );
     }
 }

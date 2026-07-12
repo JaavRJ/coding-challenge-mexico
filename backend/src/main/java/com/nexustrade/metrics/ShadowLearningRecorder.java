@@ -27,6 +27,7 @@ public class ShadowLearningRecorder {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private PrintWriter writer;
+    private PrintWriter executedWriter;
 
     public ShadowLearningRecorder(
             @Value("${nexustrade.persistence.events-file:./data/events.jsonl}") String eventsFile) {
@@ -34,10 +35,13 @@ public class ShadowLearningRecorder {
             Path path = Path.of(eventsFile);
             Files.createDirectories(path.getParent());
             writer = new PrintWriter(new BufferedWriter(new FileWriter(eventsFile, true)), true);
-            log.info("📝 ShadowLearningRecorder writing to: {}", path.toAbsolutePath());
+            String executedFile = eventsFile.replace("events.jsonl", "executed.jsonl");
+            executedWriter = new PrintWriter(new BufferedWriter(new FileWriter(executedFile, true)), true);
+            log.info("📝 ShadowLearningRecorder writing to: {} and {}", path.toAbsolutePath(), executedFile);
         } catch (IOException e) {
             log.error("Failed to open events file: {}", e.getMessage());
             writer = null;
+            executedWriter = null;
         }
     }
 
@@ -61,7 +65,11 @@ public class ShadowLearningRecorder {
             node.put("rejectionReason", opp.rejectionReason());
             node.put("decisionLatencyMs", opp.decisionLatencyMs());
 
-            writer.println(MAPPER.writeValueAsString(node));
+            String json = MAPPER.writeValueAsString(node);
+            writer.println(json);
+            if ("EXECUTED".equals(opp.status().name()) && executedWriter != null) {
+                executedWriter.println(json);
+            }
         } catch (Exception e) {
             log.warn("Failed to write event: {}", e.getMessage());
         }
@@ -86,7 +94,11 @@ public class ShadowLearningRecorder {
             node.put("rejectionReason", opp.rejectionReason());
             node.put("decisionLatencyMs", opp.decisionLatencyMs());
 
-            writer.println(MAPPER.writeValueAsString(node));
+            String json = MAPPER.writeValueAsString(node);
+            writer.println(json);
+            if ("EXECUTED".equals(opp.status().name()) && executedWriter != null) {
+                executedWriter.println(json);
+            }
         } catch (Exception e) {
             log.warn("Failed to write event: {}", e.getMessage());
         }
@@ -97,7 +109,11 @@ public class ShadowLearningRecorder {
         if (writer != null) {
             writer.flush();
             writer.close();
-            log.info("📝 ShadowLearningRecorder closed");
         }
+        if (executedWriter != null) {
+            executedWriter.flush();
+            executedWriter.close();
+        }
+        log.info("📝 ShadowLearningRecorder closed");
     }
 }

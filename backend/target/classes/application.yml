@@ -1,9 +1,18 @@
 spring:
   application:
-    name: nexustrade
+    name: nobatrade
   threads:
     virtual:
       enabled: true  # Java 21 Virtual Threads — Project Loom
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:file:./data/nobatrade;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
 
 server:
   port: 8080
@@ -21,10 +30,8 @@ management:
 
 nexustrade:
   engine:
-    min-profit-usd: 5.0
-    max-volume-btc: 0.1
     decision-timeout-ms: 200
-    evaluation-interval-ms: 50  # Engine evalúa cada 50ms
+    evaluation-interval-ms: 500  # Engine evalúa cada 500ms (reducido para ahorrar bandwidth)
 
   risk:
     circuit-breaker-losses: 3
@@ -38,8 +45,10 @@ nexustrade:
 
   exchanges:
     binance:
-      ws-url: "wss://stream.binance.com:9443/stream?streams=btcusdt@depth20@100ms/ethbtc@depth20@100ms/ethusdt@depth20@100ms"
+      ws-url: "wss://stream.binance.com:9443/stream?streams=btcusdt@depth20@1000ms/ethbtc@depth20@1000ms/ethusdt@depth20@1000ms"
       rest-url: "https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=20"
+      api-key: ${BINANCE_API_KEY:''}
+      api-secret: ${BINANCE_API_SECRET:''}
       fee-maker: 0.001
       fee-taker: 0.001
       withdrawal-fee-btc: 0.0005
@@ -47,6 +56,8 @@ nexustrade:
     kraken:
       ws-url: "wss://ws.kraken.com/v2"
       rest-url: "https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=20"
+      api-key: ${KRAKEN_API_KEY:''}
+      api-secret: ${KRAKEN_API_SECRET:''}
       fee-maker: 0.0016
       fee-taker: 0.0026
       withdrawal-fee-btc: 0.0002
@@ -54,6 +65,8 @@ nexustrade:
     coinbase:
       ws-url: "wss://advanced-trade-ws.coinbase.com"
       rest-url: "https://api.coinbase.com/api/v3/brokerage/best_bid_ask?product_ids=BTC-USD"
+      api-key: ${COINBASE_API_KEY:''}
+      api-secret: ${COINBASE_API_SECRET:''}
       fee-maker: 0.004
       fee-taker: 0.006
       withdrawal-fee-btc: 0.0

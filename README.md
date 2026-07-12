@@ -143,7 +143,7 @@ Para asegurar total determinismo sin importar el sistema operativo host (Windows
 
 1. Clona este repositorio y entra a la carpeta:
 ```bash
-git clone https://github.com/JoahanMorales/nexustrade-fase1.git
+git clone https://github.com/JaavRJ/coding-challemge-mexico.git
 cd nexustrade-fase1
 ```
 
@@ -178,5 +178,5 @@ docker-compose up -d --build
 
 ---
 
-**Autor:** Joahan Samuel Morales Piña  
+**Autor:** Javier Reyna Juárez 
 **Proyecto:** NobaTrade · `CODING_CHALLENGE_MEXICO`

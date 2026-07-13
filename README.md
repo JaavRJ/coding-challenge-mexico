@@ -42,6 +42,9 @@ La entrega pública separa con claridad:
 | :---: | :---: |
 | <img src="/image1.png" width="100%" alt="Terminal"> | <img src="/image2.png" width="100%" alt="Landing"> |
 | Vista principal del Cockpit de Motores y tabla histórica de inyecciones financieras. | Explicación técnica animada del modelo en la Landing Page. |
+| <img src="/image3.png" width="100%" alt="Terminal"> | <img src="/image4.png" width="100%" alt="Landing"> |
+| Explicación de tecnicas utilizadas. | Trades ejecutados con exito. |
+
 
 ## ✨ Diferenciadores
 

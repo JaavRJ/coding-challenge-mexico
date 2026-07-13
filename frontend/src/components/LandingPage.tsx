@@ -23,10 +23,10 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
                 MOTOR v4.2 ACTIVO
               </span>
               <span className="bg-purple-500/15 text-purple-300 border border-purple-500/30 px-2.5 py-1 rounded-sm font-bold">
-                🤖 CO-PILOTO IA ACTIVO
+                CO-PILOTO IA ACTIVO
               </span>
               <span className="bg-blue-500/15 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-sm font-bold">
-                ☁️ SUPABASE POSTGRESQL
+                SUPABASE POSTGRESQL
               </span>
             </div>
             
@@ -35,7 +35,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
               <br />
               <span className="italic font-light text-profit">inteligencia artificial</span>
               <br />
-              & 5 exchanges en vivo.
+              & Precisión Institucional.
             </h1>
             
             <p className="max-w-2xl text-base leading-relaxed text-foreground/70">
@@ -55,7 +55,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
                 href="#exchanges"
                 className="flex h-13 items-center gap-3 border border-white/20 px-6 text-xs font-bold uppercase tracking-widest text-foreground transition hover:bg-white/5 rounded-sm"
               >
-                Explorar Arquitectura v4.2
+                Explorar Arquitectura
               </a>
             </div>
           </div>

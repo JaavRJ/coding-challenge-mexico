@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/JoahanMorales">GitHub</a> ·
-  <a href="https://www.linkedin.com/in/joahan-morales/">LinkedIn</a>
+  <a href="https://github.com/JaavRJ">GitHub</a> ·
+  <a href="https://www.linkedin.com/in/javier-reyna-ju%C3%A1rez-779a5827a/">LinkedIn</a>
 </p>
 
 <p align="center">
@@ -25,42 +25,14 @@
 
 ## 📖 Visión General
 
-**NobaTrade** no es un bot convencional; es un simulador de arquitectura de grado institucional diseñado para detectar ineficiencias de mercado (spreads) en milisegundos. Conecta de forma simultánea y asíncrona a múltiples exchanges globales, normaliza sus libros de órdenes (`Order Books`) en una estructura unificada y evalúa estrategias de arbitraje de manera continua.
+**NobaTrade** no es un bot convencional; es un simulador de arquitectura de grado institucional diseñado para detectar ineficiencias de mercado (spreads) en milisegundos. Conecta de forma simultánea y asíncrona a **5 exchanges globales (Binance, Kraken, Coinbase, Bitfinex y OKX)**, normaliza sus libros de órdenes (`Order Books`) en una estructura unificada y evalúa estrategias de arbitraje de manera continua aprovechando la concurrencia masiva de **Java 21 Virtual Threads (Project Loom)**.
 
-Construido bajo el paradigma **Event-Driven**, NobaTrade delega todo el procesamiento matemático pesado a un Backend inyectado en esteroides (Java 21 + Spring Boot), mientras sirve a los usuarios finales una interfaz gráfica (Frontend en Next.js) que fluye en tiempo real sin saturar el navegador, gracias a un túnel de *Server-Sent Events (SSE)*.
+Construido bajo el paradigma **Event-Driven**, NobaTrade delega todo el procesamiento matemático pesado a un Backend inyectado en esteroides (Java 21 + Spring Boot), valida cada operación con un **Co-Piloto de Inteligencia Artificial (AI Confidence Scorer + Anomaly Detector)** y persiste su contabilidad y auditoría en **Supabase PostgreSQL Cloud DB**, mientras sirve a los usuarios finales una interfaz gráfica (Frontend en Next.js) que fluye en tiempo real sin saturar el navegador, gracias a un túnel de *Server-Sent Events (SSE)*.
 
 La entrega pública separa con claridad:
 - **Live market data**: Precios reales recibidos por conexiones concurrentes a exchanges de Tier 1.
-- **Paper P&L**: Ganancias y pérdidas calculadas sobre datos reales de forma hiperrealista.
-- **Circuit Breaker**: Mecanismo manual/automático de mitigación de riesgo ante mercados en colapso.
-
----
-
-## 🔥 Novedades Institucionales v4.2 (Actualización Día 1 y Día 2)
-
-En las últimas iteraciones se han incorporado capacidades de grado institucional al motor y a la interfaz sin alterar la estabilidad del núcleo original:
-
-1. **Persistencia Cloud Real (Supabase PostgreSQL):**
-   - Integración nativa con base de datos relacional en nube mediante `DatabasePersistenceService`, `TradeRepository` y `WalletSnapshotRepository`.
-   - Las operaciones ejecutadas y el historial de balances persisten de forma permanente en PostgreSQL en la nube, sirviéndose a la interfaz en tiempo real.
-
-2. **Expansión Multi-Exchange (5 Exchanges Institucionales):**
-   - Conectividad en tiempo real (WebSockets / REST normalizado) con **Binance, Kraken, Coinbase Pro, Bitfinex y OKX**.
-   - Evaluación cruzada direccional masiva ($5 \times 4 = 20$ rutas en paralelo) en cada ciclo del motor.
-
-3. **Co-Piloto de Inteligencia Artificial & Detección de Anomalías:**
-   - **Confidence Scorer (0 a 100):** Calificación multidimensional por trade evaluando profundidad de liquidez (VWAP slippage), spread neto tras comisiones y volatilidad.
-   - **Anomaly Detector (Z-Score Rodante):** Compara el spread contra la media y desviación estándar móvil de la ruta para prevenir falsos positivos o *spoofing*.
-   - Badge visual en tiempo real en el historial de operaciones (`🤖 AI Confidence: XX/100 ✓ Anomaly Verified`).
-
-4. **Gráficos en Vivo TradingView & Alertas Telegram:**
-   - Integración compacta (`220px`) de **Lightweight Charts v4** con velas en vivo de Binance (`BTC/USDT`) y marcadores de compra/venta de arbitraje en el precio.
-   - **TelegramNotificationService:** Alertas automáticas enviadas a Telegram al ejecutarse oportunidades rentables.
-
-5. **Concurrencia Sub-milisegundo con Java 21 Virtual Threads (Loom):**
-   - Procesamiento asíncrono ultra-bajo en latencia (`0-2ms`), aprovechando hilos virtuales para evaluar todos los conectores simultáneamente sin saturar recursos.
-
----
+- **Paper P&L Auditado**: Ganancias y pérdidas calculadas sobre datos reales de forma hiperrealista y guardadas en base de datos PostgreSQL.
+- **Circuit Breaker & Rebalanceo**: Mecanismos automáticos/manuales de mitigación de riesgo ante mercados en colapso y rebalanceo de carteras con asimetría extrema.
 
 ## 📸 Screenshots
 
@@ -75,19 +47,23 @@ En las últimas iteraciones se han incorporado capacidades de grado instituciona
 
 ### 1. Motor Computacional Estricto (Backend)
 - **Cero Errores de Precisión:** Todo cálculo financiero, spread y fee se procesa utilizando la clase inmutable `BigDecimal`. Al eliminar la dependencia de primitivos de coma flotante (IEEE 754), evitamos los clásicos micro-descuadres matemáticos presentes en scripts simples.
-- **Conectores Concurrentes Asíncronos:** Ingesta de datos en paralelo desde **Binance, Kraken, Coinbase, Bitfinex y OKX**. El sistema es resiliente: si un conector cae, el motor sigue evaluando con el resto de mercados sin bloquear el hilo principal.
-- **Normalización Unificada:** Cada exchange transmite datos en su propio formato. Nuestro componente `OrderBook Normalizer` unifica el Bid y el Ask al instante para una evaluación cruzada universal.
+- **Conectores Concurrentes Asíncronos (5 Exchanges):** Ingesta de datos en paralelo desde **Binance, Kraken, Coinbase, Bitfinex y OKX** aprovechando la concurrencia masiva de **Java 21 Virtual Threads (Project Loom)** para lograr latencias sub-milisegundo (~0-2ms). El sistema es resiliente: si un conector cae, el motor sigue evaluando con el resto de mercados sin bloquear el hilo principal.
+- **Normalización Unificada:** Cada exchange transmite datos en su propio formato. Nuestro componente `OrderBook Normalizer` unifica el Bid y el Ask al instante para una evaluación cruzada universal sobre 20 rutas direccionales por tick.
 
-### 2. Algoritmos de Arbitraje
-| Estrategia | Criterio |
+### 2. Algoritmos de Arbitraje & Co-Piloto IA
+| Estrategia / Filtro | Criterio |
 |---|---|
-| `CROSS_EXCHANGE (Spatial)` | Compra el mejor Ask en un exchange y vende el mejor Bid en otro simultáneamente asumiendo costos de Taker Fee. |
-| `TRIANGULAR` | Evalúa el ciclo asimétrico entre múltiples pares dentro de un mismo exchange (Ej. USDT -> BTC -> ETH -> USDT). |
+| `CROSS_EXCHANGE (Spatial)` | Compra el mejor Ask en un exchange y vende el mejor Bid en otro simultáneamente asumiendo costos de Taker/Maker Fee y retiro de red. |
+| `TRIANGULAR` | Evalúa el ciclo asimétrico entre múltiples pares dentro de un mismo exchange (Ej. en Binance: `USDT -> BTC -> ETH -> USDT`) capturando beneficio spot sin fricción blockchain. |
+| `CO-PILOTO IA (Scoring & Anomalías)` | Califica cada oportunidad detectada con un **Confidence Score (0-100)** y valida desviaciones contra un **Anomaly Detector (Z-Score rodante)** para filtrar manipulación de libro (*spoofing*) antes de ejecutar. |
 | `PAPER_TRADING` | Valida márgenes restando fricciones, sin emitir transacciones con capital real, para fines de calibración de Risk-Reward. |
 
-### 3. Gestión de Riesgos Institucional y Cockpit
-- **Circuit Breaker Automatizado:** Previene catástrofes frenando el motor si el riesgo sube de nivel crítico.
-- **Engine Cockpit:** Una consola de control incrustada en el UI para habilitar/deshabilitar mercados escuchados en caliente, ajustar la meta de ganancia (Min ROI) y ejecutar pruebas de estrés inyectando un colapso manual (*Flash Crash*).
+### 3. Gestión de Riesgos Institucional, Persistencia y Cockpit
+- **Circuit Breaker Automatizado:** Previene catástrofes frenando el motor si el riesgo sube de nivel crítico (pérdidas consecutivas o caída de drawdown máxima).
+- **Servicio de Rebalanceo de Inventario (`RebalancingService`):** Supervisa la asimetría entre carteras virtuales. Si la desviación de inventario en un exchange supera el 40%, ejecuta eventos de rebalanceo automáticos o manuales.
+- **Persistencia Cloud (`Supabase PostgreSQL`):** Las ejecuciones e historiales (`TradeEntity`, `WalletSnapshotEntity`) se guardan directamente en base de datos relacional en la nube para auditoría real entre reinicios.
+- **Notificaciones Instantáneas (`TelegramNotificationService`):** Emite alertas en tiempo real a tu canal de Telegram tras cada operación ejecutada exitosamente.
+- **Engine Cockpit & Gráficos TradingView:** Una consola de control incrustada en el UI con un gráfico compacto **Lightweight Charts v4 (220px)** mostrando velas BTC/USDT en vivo desde Binance y marcadores de ejecución en tiempo real.
 
 ## 🏗 Arquitectura del Sistema
 
@@ -95,7 +71,7 @@ El proyecto sigue una arquitectura de microservicios contenerizada con estricta 
 
 ```mermaid
 flowchart TD
-    subgraph Mercados ["Mercados Mundiales (Exchanges)"]
+    subgraph Mercados ["Mercados Mundiales (5 Exchanges)"]
         B["Binance"]
         K["Kraken"]
         C["Coinbase"]
@@ -103,33 +79,43 @@ flowchart TD
         O["OKX"]
     end
 
-    subgraph Backend ["Motor Backend (Java 21 + Spring Boot)"]
+    subgraph Backend ["Motor Backend (Java 21 Loom + Spring Boot)"]
         CR["ConnectorRegistry (Ingesta Asíncrona)"]
         ON["OrderBook Normalizer"]
-        AE["Arbitrage Engine (Math & Eval)"]
-        RM["Risk Manager & Circuit Breaker"]
-        PS["Persistence & Auditing (Supabase DB)"]
+        AE["Arbitrage Engine (Spatial & Triangular)"]
+        AI["Co-Piloto IA (Scorer + Anomaly Detector)"]
+        RM["Risk Manager, Circuit Breaker & Rebalancing"]
+        PS["DatabasePersistenceService (Supabase DB)"]
         SSE["SSE / REST Controllers"]
+    end
+
+    subgraph Cloud ["Servicios Cloud & Alertas"]
+        DB[(Supabase PostgreSQL)]
+        TG[Telegram Notification Service]
     end
 
     subgraph Frontend ["Terminal React (Next.js 14)"]
         UI["Landing & Dashboard"]
         CK["Cockpit Control"]
-        HM["Analytics Heatmap"]
-        LH["Live History & Wallets"]
+        CH["TradingView Chart (220px)"]
+        LH["Live History + AI Badge"]
     end
 
     B & K & C & F & O -- REST / WS --> CR
     CR --> ON
     ON --> AE
+    AE <--> AI
     AE --> RM
     RM --> PS
+    PS <--> DB
+    PS --> TG
     PS --> SSE
     SSE -- Server Sent Events --> LH
-    SSE -- REST Polling --> CK & HM
+    SSE -- REST Polling --> CK & UI
+    B -- WS Klines --> CH
 ```
 
-El backend asimila la pesada carga del mercado. La interfaz consume *Server-Sent Events (SSE)* logrando un frontend extremadamente fluido sin hundir al navegador del cliente por saturación de peticiones.
+El backend asimila la pesada carga del mercado usando hilos virtuales (Loom). La interfaz consume *Server-Sent Events (SSE)* logrando un frontend extremadamente fluido sin hundir al navegador del cliente por saturación de peticiones.
 
 ## 📂 Project Structure
 
@@ -139,17 +125,20 @@ La modularización garantiza un acoplamiento suelto entre el cerebro numérico y
 nexustrade-fase1_1/
 ├── backend/
 │   ├── src/main/java/com/nexustrade/
-│   │   ├── connector/     # Conectores REST/WS a cada Exchange
-│   │   ├── engine/        # Lógica matemática central (Spatial, Triangular)
+│   │   ├── connector/     # Conectores REST/WS (Binance, Kraken, Coinbase, Bitfinex, OKX)
+│   │   ├── engine/        # Lógica matemática (Spatial, Triangular, ConfidenceScorer, AnomalyDetector)
 │   │   ├── model/         # Entidades de negocio (OrderBook, ArbitrageOpportunity)
-│   │   └── rest/          # Endpoints HTTP y Server-Sent Events (SSE)
-│   ├── pom.xml            # Dependencias Maven (Spring Boot 3)
-│   └── Dockerfile         # Receta de empaquetado para el servicio Java
+│   │   ├── persistence/   # Repositorios JPA y conexión con Supabase PostgreSQL
+│   │   ├── risk/          # WalletManager, CircuitBreaker y RebalancingService
+│   │   ├── notifications/ # TelegramNotificationService para alertas en vivo
+│   │   └── rest/          # Endpoints HTTP (/api/config, /api/history) y SSE
+│   ├── pom.xml            # Dependencias Maven (Spring Boot 3 + PostgreSQL Driver)
+│   └── Dockerfile         # Receta de empaquetado para el servicio Java 21
 ├── frontend/
 │   ├── src/app/           # Enrutamiento de Next.js (Terminal, Replay, Analytics)
-│   ├── src/components/    # Componentes React Reutilizables (Cockpit, Heatmap, Tablas)
+│   ├── src/components/    # Componentes React (Cockpit, TradingChart, ExecutedTradesFeed)
 │   ├── src/lib/           # Core de utilidades, helpers y validadores
-│   ├── package.json       # Dependencias Node (React, Framer Motion, Tailwind)
+│   ├── package.json       # Dependencias Node (React, Lightweight Charts v4, Tailwind)
 │   └── Dockerfile         # Receta de empaquetado del SSR de Next.js
 └── docker-compose.yml     # Orquestador maestro de la infraestructura
 ```
@@ -173,8 +162,8 @@ Para asegurar total determinismo sin importar el sistema operativo host (Windows
 
 1. Clona este repositorio y entra a la carpeta:
 ```bash
-git clone https://github.com/JoahanMorales/nexustrade-fase1.git
-cd nexustrade-fase1
+git clone https://github.com/JaavRJ/coding-challenge-mexico.git
+
 ```
 
 2. Dispara el compilador multi-etapa y orquestador maestro en background:
@@ -193,12 +182,12 @@ docker-compose up -d --build
 
 | Criterio | Evidencia en NobaTrade |
 |---|---|
-| **Velocidad** | Ingesta concurrente, procesamiento event-driven puro y uso de `Server-Sent Events` para fluidez visual sin retrasos. |
-| **Precisión** | Blindaje contra imprecisiones usando `BigDecimal` estricto en el Backend para todos los spreads y comisiones. |
-| **Robustez** | Aislamiento Dockerizado, manejo de caídas de conexión externa y un `Circuit Breaker` de pánico expuesto en el UI. |
-| **Estrategia** | Modelos Multi-Exchange (Spatial) e Intra-Exchange (Triangular) activos en un mismo thread pool. |
-| **Arquitectura** | Desacoplamiento total, microservicios y encapsulamiento REST estricto. |
-| **UX/UI** | Tema oscuro institucional inmersivo, microanimaciones de actualización (Framer), gráficas nativas y Modo DEMO focalizado. |
+| **Velocidad** | Ingesta concurrente en **5 exchanges** con **Java 21 Virtual Threads (Loom)** (`0-2ms`) y túnel `Server-Sent Events` para fluidez visual sin retrasos. |
+| **Precisión** | Blindaje contra imprecisiones usando `BigDecimal` estricto en el Backend para todos los spreads, VWAP y comisiones. |
+| **Robustez** | Persistencia cloud real con **Supabase PostgreSQL**, aislamiento Dockerizado, `Circuit Breaker` automático y servicio de rebalanceo (`RebalancingService`). |
+| **Estrategia** | Modelos Multi-Exchange (Spatial) en 20 rutas direccionales e Intra-Exchange (Triangular) validados por el **Co-Piloto IA**. |
+| **Arquitectura** | Desacoplamiento total, microservicios, recarga de parámetros en caliente (`POST /api/config`) y alertas por Telegram. |
+| **UX/UI** | Tema oscuro institucional inmersivo, gráfico de velas en vivo **TradingView (Lightweight Charts v4)** y auditoría visual de IA. |
 
 ## ⚠️ Límites Honestos
 
@@ -208,5 +197,5 @@ docker-compose up -d --build
 
 ---
 
-**Autor:** Joahan Samuel Morales Piña  
+**Autor:** Javier Reyna Juárez 
 **Proyecto:** NobaTrade · `CODING_CHALLENGE_MEXICO`

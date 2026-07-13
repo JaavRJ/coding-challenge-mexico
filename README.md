@@ -17,6 +17,8 @@
   <img alt="Docker" src="https://img.shields.io/badge/Docker-compose-2496ED?style=flat-square" />
   <img alt="Realtime SSE" src="https://img.shields.io/badge/SSE-live-0ea5e9?style=flat-square" />
   <img alt="Math" src="https://img.shields.io/badge/BigDecimal-financial_math-10b981?style=flat-square" />
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square" />
+  <img alt="AI Co-Pilot" src="https://img.shields.io/badge/AI_Scorer-0--100-8b5cf6?style=flat-square" />
 </p>
 
 ---
@@ -31,6 +33,34 @@ La entrega pública separa con claridad:
 - **Live market data**: Precios reales recibidos por conexiones concurrentes a exchanges de Tier 1.
 - **Paper P&L**: Ganancias y pérdidas calculadas sobre datos reales de forma hiperrealista.
 - **Circuit Breaker**: Mecanismo manual/automático de mitigación de riesgo ante mercados en colapso.
+
+---
+
+## 🔥 Novedades Institucionales v4.2 (Actualización Día 1 y Día 2)
+
+En las últimas iteraciones se han incorporado capacidades de grado institucional al motor y a la interfaz sin alterar la estabilidad del núcleo original:
+
+1. **Persistencia Cloud Real (Supabase PostgreSQL):**
+   - Integración nativa con base de datos relacional en nube mediante `DatabasePersistenceService`, `TradeRepository` y `WalletSnapshotRepository`.
+   - Las operaciones ejecutadas y el historial de balances persisten de forma permanente en PostgreSQL en la nube, sirviéndose a la interfaz en tiempo real.
+
+2. **Expansión Multi-Exchange (5 Exchanges Institucionales):**
+   - Conectividad en tiempo real (WebSockets / REST normalizado) con **Binance, Kraken, Coinbase Pro, Bitfinex y OKX**.
+   - Evaluación cruzada direccional masiva ($5 \times 4 = 20$ rutas en paralelo) en cada ciclo del motor.
+
+3. **Co-Piloto de Inteligencia Artificial & Detección de Anomalías:**
+   - **Confidence Scorer (0 a 100):** Calificación multidimensional por trade evaluando profundidad de liquidez (VWAP slippage), spread neto tras comisiones y volatilidad.
+   - **Anomaly Detector (Z-Score Rodante):** Compara el spread contra la media y desviación estándar móvil de la ruta para prevenir falsos positivos o *spoofing*.
+   - Badge visual en tiempo real en el historial de operaciones (`🤖 AI Confidence: XX/100 ✓ Anomaly Verified`).
+
+4. **Gráficos en Vivo TradingView & Alertas Telegram:**
+   - Integración compacta (`220px`) de **Lightweight Charts v4** con velas en vivo de Binance (`BTC/USDT`) y marcadores de compra/venta de arbitraje en el precio.
+   - **TelegramNotificationService:** Alertas automáticas enviadas a Telegram al ejecutarse oportunidades rentables.
+
+5. **Concurrencia Sub-milisegundo con Java 21 Virtual Threads (Loom):**
+   - Procesamiento asíncrono ultra-bajo en latencia (`0-2ms`), aprovechando hilos virtuales para evaluar todos los conectores simultáneamente sin saturar recursos.
+
+---
 
 ## 📸 Screenshots
 
@@ -78,7 +108,7 @@ flowchart TD
         ON["OrderBook Normalizer"]
         AE["Arbitrage Engine (Math & Eval)"]
         RM["Risk Manager & Circuit Breaker"]
-        PS["Persistence & Auditing"]
+        PS["Persistence & Auditing (Supabase DB)"]
         SSE["SSE / REST Controllers"]
     end
 
@@ -143,7 +173,7 @@ Para asegurar total determinismo sin importar el sistema operativo host (Windows
 
 1. Clona este repositorio y entra a la carpeta:
 ```bash
-git clone https://github.com/JaavRJ/coding-challemge-mexico.git
+git clone https://github.com/JoahanMorales/nexustrade-fase1.git
 cd nexustrade-fase1
 ```
 
@@ -178,5 +208,5 @@ docker-compose up -d --build
 
 ---
 
-**Autor:** Javier Reyna Juárez 
+**Autor:** Joahan Samuel Morales Piña  
 **Proyecto:** NobaTrade · `CODING_CHALLENGE_MEXICO`

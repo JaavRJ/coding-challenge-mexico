@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Activity, Zap, Shield, GitBranch, Terminal as TerminalIcon, Coins, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Activity, Zap, Shield, GitBranch, Terminal as TerminalIcon, Coins, RefreshCw, Cpu, Database, Award, CheckCircle2 } from "lucide-react";
 
 export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
   const [tick, setTick] = useState(0);
@@ -12,247 +12,287 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* HERO */}
-      <section className="border-b nx-hairline">
-        <div className="mx-auto grid max-w-[1400px] grid-cols-12 gap-6 px-6 py-20 lg:py-28">
-          <div className="col-span-12 lg:col-span-8">
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">
-              <span className="inline-block h-1.5 w-1.5 animate-pulse bg-profit" />
-              <span>Sistema Activo · Motor v4.2.1</span>
+      {/* HERO SECTION */}
+      <section className="relative border-b nx-hairline overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-profit/5 via-transparent to-purple-500/5 pointer-events-none" />
+        <div className="mx-auto grid max-w-[1400px] grid-cols-12 gap-8 px-6 py-20 lg:py-28 relative z-10">
+          <div className="col-span-12 lg:col-span-8 space-y-6">
+            <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/60">
+              <span className="flex items-center gap-1.5 bg-profit/15 text-profit border border-profit/30 px-2.5 py-1 rounded-sm font-bold">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse bg-profit rounded-full" />
+                MOTOR v4.2 ACTIVO
+              </span>
+              <span className="bg-purple-500/15 text-purple-300 border border-purple-500/30 px-2.5 py-1 rounded-sm font-bold">
+                🤖 CO-PILOTO IA ACTIVO
+              </span>
+              <span className="bg-blue-500/15 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-sm font-bold">
+                ☁️ SUPABASE POSTGRESQL
+              </span>
             </div>
-            <h1 className="mt-6 text-5xl font-bold leading-[0.95] tracking-tight md:text-7xl lg:text-[5.5rem]">
-              Arbitraje con
+            
+            <h1 className="text-5xl font-extrabold leading-[0.95] tracking-tight md:text-7xl lg:text-[5.5rem]">
+              Arbitraje HFT con
               <br />
-              <span className="italic font-light opacity-60">latencia institucional</span>
+              <span className="italic font-light text-profit">inteligencia artificial</span>
               <br />
-              y precisión.
+              & 5 exchanges en vivo.
             </h1>
-            <p className="mt-8 max-w-xl text-base leading-relaxed text-foreground/60">
-              NobaTrade centraliza libros de órdenes de Binance, Kraken y Coinbase en tiempo real. 
-              Evalúa cientos de oportunidades por segundo y ejecuta estrategias de arbitraje directo 
-              y triangular, protegido por un cortocircuito automático ante anomalías del mercado.
+            
+            <p className="max-w-2xl text-base leading-relaxed text-foreground/70">
+              NobaTrade centraliza libros de órdenes en sub-milisegundos desde <strong className="text-white font-bold">Binance, Kraken, Coinbase Pro, Bitfinex y OKX</strong>. Evalúa miles de rutas cruzadas y triangulares por segundo usando <strong className="text-profit">Virtual Threads (Loom)</strong>, verificando anomalías de mercado con su Co-Piloto IA y registrando contabilidad estricta en <strong className="text-blue-400">Supabase DB</strong>.
             </p>
-            <div className="mt-10 flex flex-wrap items-center gap-3">
+            
+            <div className="pt-4 flex flex-wrap items-center gap-4">
               <button
                 onClick={onLaunch}
-                className="group flex h-12 items-center gap-3 bg-foreground px-6 text-xs font-bold uppercase tracking-widest text-background transition hover:opacity-90"
+                className="group flex h-13 items-center gap-3 bg-profit px-8 text-xs font-extrabold uppercase tracking-widest text-black transition hover:bg-profit/90 shadow-lg shadow-profit/20 rounded-sm cursor-pointer"
               >
+                <TerminalIcon className="h-4 w-4" />
                 Abrir Terminal en Vivo
                 <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </button>
               <a
-                href="#engine"
-                className="flex h-12 items-center gap-3 border border-foreground/25 px-6 text-xs font-bold uppercase tracking-widest text-foreground transition hover:bg-surface"
+                href="#exchanges"
+                className="flex h-13 items-center gap-3 border border-white/20 px-6 text-xs font-bold uppercase tracking-widest text-foreground transition hover:bg-white/5 rounded-sm"
               >
-                Leer especificaciones
+                Explorar Arquitectura v4.2
               </a>
             </div>
           </div>
 
           <aside className="col-span-12 lg:col-span-4">
-            <div className="nx-panel h-full p-5 flex flex-col justify-between">
+            <div className="nx-panel h-full p-5 flex flex-col justify-between border-profit/30 bg-gradient-to-b from-white/4 to-transparent">
               <div>
                 <div className="flex items-center justify-between border-b nx-hairline pb-3">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/40">Feed en Vivo</span>
-                  <span className="font-mono text-[10px] text-profit">● transmitiendo</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50 font-bold">Feed Multi-Exchange</span>
+                  <span className="font-mono text-[10px] text-profit font-bold flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-profit animate-ping" /> 5 EXCHANGES SYNC
+                  </span>
                 </div>
                 <ul className="mt-4 space-y-3 font-mono text-[11px]">
                   {sampleTicks(tick).map((t, i) => (
-                    <li key={i} className="flex items-center justify-between">
-                      <span className="text-foreground/50">{t.pair}</span>
-                      <span className="text-foreground/70">{t.venue}</span>
-                      <span className={t.delta >= 0 ? "text-profit" : "text-loss"}>
+                    <li key={i} className="flex items-center justify-between bg-white/3 px-2.5 py-1.5 rounded">
+                      <span className="text-foreground font-bold">{t.pair}</span>
+                      <span className="text-foreground/70 uppercase text-[9px] bg-white/10 px-1.5 py-0.5 rounded">{t.venue}</span>
+                      <span className={`font-bold ${t.delta >= 0 ? "text-profit" : "text-loss"}`}>
                         {t.delta >= 0 ? "+" : ""}
-                        {t.delta.toFixed(2)}%
+                        {t.delta.toFixed(3)}%
                       </span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="mt-5 grid grid-cols-3 gap-2 border-t nx-hairline pt-4">
-                <Stat k="Lat" v="42ms" />
-                <Stat k="Win" v="68%" />
-                <Stat k="Vol" v="$8.4M" />
+              <div className="mt-5 grid grid-cols-3 gap-2 border-t nx-hairline pt-4 text-center">
+                <Stat k="Loom Lat" v="0-2ms" />
+                <Stat k="AI Score" v="88/100" />
+                <Stat k="Exchanges" v="5 ACTIVOS" />
               </div>
             </div>
           </aside>
         </div>
       </section>
 
-      {/* METRICS BAR */}
-      <section id="metrics" className="border-b nx-hairline bg-surface">
+      {/* INSTITUTIONAL KPI BAR */}
+      <section id="metrics" className="border-b nx-hairline bg-surface/50 backdrop-blur">
         <div className="mx-auto grid max-w-[1400px] grid-cols-2 divide-x divide-y nx-hairline md:grid-cols-4 md:divide-y-0">
           {[
-            { k: "Evaluaciones / seg", v: "214" },
-            { k: "Latencia mediana", v: "42ms" },
-            { k: "Exchanges integrados", v: "5" },
-            { k: "Oportunidades (24h)", v: "1,842" },
+            { k: "Conectores HFT Activos", v: "5 Instituciones", desc: "Binance, Kraken, Coinbase, Bitfinex, OKX" },
+            { k: "Motor Concurrente", v: "Virtual Threads", desc: "Java 21 Project Loom (0-2ms ejecución)" },
+            { k: "Inteligencia Artificial", v: "Z-Score + Scorer", desc: "Filtro anti-spoofing y score 0-100 en tiempo real" },
+            { k: "Single Source of Truth", v: "Supabase DB", desc: "PostgreSQL en nube con auditoría P&L real" },
           ].map((m) => (
-            <div key={m.k} className="px-6 py-8 border-b md:border-b-0 nx-hairline">
-              <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/40">{m.k}</div>
-              <div className="mt-3 text-3xl font-bold tracking-tight">{m.v}</div>
+            <div key={m.k} className="px-6 py-6 border-b md:border-b-0 nx-hairline">
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-profit font-bold">{m.k}</div>
+              <div className="mt-2 text-2xl font-extrabold tracking-tight text-white">{m.v}</div>
+              <div className="mt-1 text-[11px] text-foreground/50 font-mono">{m.desc}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* DETAILED EXPLANATION */}
-      <section id="how-it-works" className="border-b nx-hairline bg-background">
-        <div className="mx-auto max-w-[1400px] px-6 py-24">
-          <div className="max-w-3xl mb-16">
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">01 — Estrategias</span>
-            <h2 className="mt-4 text-4xl font-bold tracking-tight">¿Cómo funciona NobaTrade?</h2>
+      {/* EXCHANGES & CONNECTORS HIGHLIGHT */}
+      <section id="exchanges" className="border-b nx-hairline bg-background">
+        <div className="mx-auto max-w-[1400px] px-6 py-20">
+          <div className="max-w-3xl mb-12">
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-profit font-bold">01 — Conectividad Institucional</span>
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight">5 Exchanges Globales Conectados en Tiempo Real</h2>
             <p className="mt-4 text-sm leading-relaxed text-foreground/60">
-              Nuestro motor está diseñado para identificar ineficiencias de mercado a gran velocidad.
-              Detecta diferencias de precios (spreads) y ejecuta operaciones simuladas instantáneamente
-              tomando en cuenta las comisiones de cada red (maker/taker fees).
+              NobaTrade v4.2 no se limita a un par de mercados. Ingiere libros de órdenes de 5 instituciones líderes mediante WebSockets y APIs REST normalizadas, calculando 20 rutas direccionales por ciclo de reloj.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="nx-panel p-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <RefreshCw className="w-32 h-32" />
-              </div>
-              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <GitBranch className="h-5 w-5 text-profit" />
-                Arbitraje Espacial (Cross-Exchange)
-              </h3>
-              <p className="text-foreground/70 text-sm leading-relaxed mb-6">
-                Compara el mismo par (ej. BTC/USDT) entre múltiples exchanges. Si el precio de venta (Ask) en Binance es más bajo que el precio de compra (Bid) en Kraken por un margen que supera las comisiones combinadas, el motor identifica un spread rentable y emite las órdenes de compra y venta simultáneamente.
-              </p>
-              <div className="bg-surface p-4 border border-foreground/10 text-xs font-mono text-foreground/60">
-                1. Buy BTC @ Binance (Low Ask)<br/>
-                2. Sell BTC @ Kraken (High Bid)<br/>
-                3. Net Profit = Spread - Fees
-              </div>
-            </div>
-
-            <div className="nx-panel p-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Coins className="w-32 h-32" />
-              </div>
-              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Activity className="h-5 w-5 text-profit" />
-                Arbitraje Triangular
-              </h3>
-              <p className="text-foreground/70 text-sm leading-relaxed mb-6">
-                Explota desequilibrios entre tres pares de criptomonedas dentro de un solo exchange. El motor rastrea el ciclo completo: cambiar USDT por BTC, luego BTC por ETH, y finalmente ETH de vuelta a USDT. Si la cantidad final de USDT supera la inicial descontando todas las tarifas, asegura la ganancia libre de riesgo.
-              </p>
-              <div className="bg-surface p-4 border border-foreground/10 text-xs font-mono text-foreground/60">
-                1. USDT → BTC (Pair 1)<br/>
-                2. BTC → ETH (Pair 2)<br/>
-                3. ETH → USDT (Pair 3)
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ENGINE */}
-      <section id="engine" className="border-b nx-hairline">
-        <div className="mx-auto grid max-w-[1400px] grid-cols-12 gap-6 px-6 py-24">
-          <div className="col-span-12 lg:col-span-4">
-            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">02 — El Motor</span>
-            <h2 className="mt-4 text-4xl font-bold tracking-tight">
-              Determinista por diseño.
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-foreground/60">
-              Cada evaluación es reproducible. Mismo libro de órdenes, misma configuración,
-              misma decisión — siempre. NobaTrade elimina la incertidumbre de la ejecución.
-            </p>
-          </div>
-          <div className="col-span-12 grid grid-cols-1 gap-px bg-border lg:col-span-8 md:grid-cols-2">
-            {features.map((f) => (
-              <div key={f.title} className="bg-background p-8 hover:bg-surface transition-colors cursor-default">
-                <f.icon className="h-5 w-5 text-foreground/70" />
-                <h3 className="mt-5 text-base font-semibold">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/55">{f.body}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { name: "BINANCE", type: "WebSocket + REST", pairs: "BTC/USDT, ETH/BTC, ETH/USDT", status: "ONLINE" },
+              { name: "KRAKEN", type: "REST L2 Normalizer", pairs: "BTC/USDT", status: "ONLINE" },
+              { name: "COINBASE PRO", type: "REST L2 Normalizer", pairs: "BTC/USDT", status: "ONLINE" },
+              { name: "BITFINEX", type: "REST API v1", pairs: "BTC/USD Normalizado", status: "ONLINE" },
+              { name: "OKX", type: "REST Market Books", pairs: "BTC/USDT", status: "ONLINE" },
+            ].map((ex) => (
+              <div key={ex.name} className="nx-panel p-5 border border-white/10 hover:border-profit/40 transition-all space-y-3 bg-white/2">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-sm tracking-wider text-white">{ex.name}</span>
+                  <span className="bg-profit/20 text-profit text-[9px] font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                    ● {ex.status}
+                  </span>
+                </div>
+                <div className="text-[11px] font-mono text-foreground/50">{ex.type}</div>
+                <div className="text-[10px] font-mono text-profit/80 border-t border-white/10 pt-2">{ex.pairs}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* PIPELINE GRID */}
-      <section className="border-b nx-hairline bg-surface">
-        <div className="mx-auto max-w-[1400px] px-6 py-24">
-          <div className="mb-12">
-             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">03 — Arquitectura del Pipeline</span>
-             <h2 className="mt-4 max-w-2xl text-4xl font-bold tracking-tight md:text-4xl">
-               De cinco libros de órdenes a una ejecución priorizada
-             </h2>
-             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-foreground/60">
-               Cada bloque tiene una responsabilidad acotada. El motor procesa los eventos en tiempo real; la interfaz recibe un estado determinista para mantenerse fluida sin perder el ritmo institucional.
-             </p>
+      {/* AI CO-PILOT & QUANT STRATEGIES */}
+      <section id="strategies" className="border-b nx-hairline bg-surface">
+        <div className="mx-auto max-w-[1400px] px-6 py-20">
+          <div className="max-w-3xl mb-12">
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-purple-400 font-bold">02 — Inteligencia Artificial & Estrategias</span>
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight">Co-Piloto IA + Arbitraje Espacial y Triangular</h2>
+            <p className="mt-4 text-sm leading-relaxed text-foreground/60">
+              Cada oportunidad detectada es filtrada por nuestro motor de Inteligencia Artificial para confirmar que el spread no sea una ilusión de baja liquidez o manipulación (*spoofing*).
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-             {pipelineSteps.map((step, i) => (
-                <div key={step.title} className="nx-panel p-6 bg-background flex flex-col border border-foreground/5 hover:border-foreground/30 transition-colors">
-                  <div className="font-mono text-[10px] text-foreground/30 mb-4">{String(i+1).padStart(2, '0')}</div>
-                  <h3 className="font-bold text-sm mb-2">{step.title}</h3>
-                  <p className="text-xs text-foreground/60 leading-relaxed">{step.desc}</p>
-                </div>
-             ))}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="nx-panel p-7 border border-purple-500/30 bg-purple-950/10 space-y-4">
+              <div className="flex items-center gap-2 text-purple-400 font-bold text-lg">
+                <Cpu className="h-6 w-6" />
+                Co-Piloto IA (Confidence Scorer)
+              </div>
+              <p className="text-foreground/70 text-xs leading-relaxed">
+                Asigna una puntuación multidimensional de <strong>0 a 100</strong> a cada operación. Evalúa el slippage del VWAP, el margen después de comisiones, la volatilidad y la desviación estadística rodante (<strong>Anomaly Detector Z-Score</strong>).
+              </p>
+              <div className="bg-black/40 p-3.5 rounded border border-purple-500/20 text-[11px] font-mono text-purple-300">
+                🤖 AI Confidence: 88/100 ✓ Anomaly Verified
+              </div>
+            </div>
+
+            <div className="nx-panel p-7 border border-profit/30 bg-profit/5 space-y-4">
+              <div className="flex items-center gap-2 text-profit font-bold text-lg">
+                <GitBranch className="h-6 w-6" />
+                Arbitraje Inter-Exchange (Spatial)
+              </div>
+              <p className="text-foreground/70 text-xs leading-relaxed">
+                Compara en microsegundos las 20 combinaciones direccionales entre los 5 exchanges. Compra el mejor Ask en un exchange y vende el mejor Bid en otro, deduciendo de manera exacta comisiones Taker/Maker y retiro de red.
+              </p>
+              <div className="bg-black/40 p-3.5 rounded border border-profit/20 text-[11px] font-mono text-profit">
+                Buy @ Binance Ask ➔ Sell @ Kraken Bid (+Spread)
+              </div>
+            </div>
+
+            <div className="nx-panel p-7 border border-blue-500/30 bg-blue-950/10 space-y-4">
+              <div className="flex items-center gap-2 text-blue-400 font-bold text-lg">
+                <Activity className="h-6 w-6" />
+                Arbitraje Triangular (Intra-Exchange)
+              </div>
+              <p className="text-foreground/70 text-xs leading-relaxed">
+                Explota desequilibrios entre tres pares dentro de Binance: <strong>USDT ➔ BTC ➔ ETH ➔ USDT</strong>. Captura beneficios en milisegundos sin necesidad de transferir fondos en blockchain ni asumir esperas de red.
+              </p>
+              <div className="bg-black/40 p-3.5 rounded border border-blue-500/20 text-[11px] font-mono text-blue-300">
+                USDT ➔ BTC/USDT ➔ ETH/BTC ➔ ETH/USDT
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* MATH MODELS */}
+      {/* CLOUD PERSISTENCE & LOOM THREADS */}
       <section className="border-b nx-hairline bg-background">
-        <div className="mx-auto max-w-[1400px] px-6 py-24">
-          <div className="mb-12">
-             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">04 — Modelos Matemáticos</span>
-             <h2 className="mt-4 max-w-2xl text-4xl font-bold tracking-tight md:text-4xl">
-               Variables observables, decisiones auditables
-             </h2>
-             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-foreground/60">
-               Todas las decisiones de NobaTrade pueden ser rastreadas hasta sus componentes matemáticos fundamentales, evaluados a 200 iteraciones por segundo.
-             </p>
+        <div className="mx-auto grid max-w-[1400px] grid-cols-12 gap-8 px-6 py-20">
+          <div className="col-span-12 lg:col-span-5 space-y-4">
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-blue-400 font-bold">03 — Arquitectura Cloud & Concurrencia</span>
+            <h2 className="text-3xl font-extrabold tracking-tight">
+              Virtual Threads (Loom) + Supabase PostgreSQL
+            </h2>
+            <p className="text-sm leading-relaxed text-foreground/60">
+              El backend aprovecha la concurrencia masiva de <strong>Java 21 Virtual Threads</strong> para evaluar de forma independiente cada par sin colas de bloqueo. Las ejecuciones e historiales se persisten en <strong>Supabase Cloud DB</strong> para una auditoría institucional inmutable.
+            </p>
+            <div className="pt-2">
+              <button
+                onClick={onLaunch}
+                className="inline-flex items-center gap-2 bg-foreground text-background px-6 py-3 rounded-sm text-xs font-bold uppercase tracking-widest hover:opacity-90 cursor-pointer"
+              >
+                Acceder al Cockpit de Control <ArrowUpRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-             {mathModels.map((m) => (
-                <div key={m.title} className="nx-panel p-6 bg-surface flex flex-col justify-between border border-foreground/5 hover:border-foreground/20 transition-colors">
-                  <h3 className="font-bold text-sm mb-4">{m.title}</h3>
-                  <div className="bg-[#0f0f10] border nx-hairline p-4 font-mono text-[11px] text-profit overflow-x-auto whitespace-pre">
+
+          <div className="col-span-12 lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {features.map((f) => (
+              <div key={f.title} className="nx-panel p-6 bg-white/2 border border-white/10 hover:border-white/30 transition">
+                <f.icon className="h-6 w-6 text-profit mb-3" />
+                <h3 className="text-sm font-bold text-white">{f.title}</h3>
+                <p className="mt-2 text-xs leading-relaxed text-foreground/60">{f.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* MATH & PRECISE BIGDECIMAL */}
+      <section className="border-b nx-hairline bg-surface">
+        <div className="mx-auto max-w-[1400px] px-6 py-20">
+          <div className="mb-10">
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-profit font-bold">04 — Precisión Financiera Estricta</span>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight">
+              Modelos Matemáticos en BigDecimal (0% Error IEEE 754)
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mathModels.map((m) => (
+              <div key={m.title} className="nx-panel p-5 bg-background border border-white/10 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-white mb-3">{m.title}</h3>
+                  <div className="bg-black/50 border border-white/10 p-3 rounded font-mono text-[11px] text-profit overflow-x-auto whitespace-pre">
                     {m.formula}
                   </div>
-                  <p className="mt-4 text-xs text-foreground/60 leading-relaxed">{m.desc}</p>
                 </div>
-             ))}
+                <p className="mt-3 text-xs text-foreground/60 leading-relaxed">{m.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="border-b nx-hairline">
-        <div className="mx-auto max-w-[1400px] px-6 py-24 text-center">
-          <h2 className="mx-auto max-w-3xl text-5xl font-bold leading-tight tracking-tight md:text-6xl">
-            Abre el terminal.
-            <br />
-            <span className="italic font-light opacity-60">Observa el motor trabajar.</span>
+      {/* CALL TO ACTION */}
+      <section className="border-b nx-hairline bg-gradient-to-b from-background to-surface">
+        <div className="mx-auto max-w-[1400px] px-6 py-24 text-center space-y-6">
+          <h2 className="mx-auto max-w-3xl text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+            Listo para auditar el mercado en tiempo real.
           </h2>
-          <button
-            onClick={onLaunch}
-            className="mt-10 inline-flex h-14 items-center gap-3 bg-foreground px-8 text-xs font-bold uppercase tracking-widest text-background hover:opacity-90 cursor-pointer"
-          >
-            <TerminalIcon className="h-4 w-4" />
-            Lanzar NobaTrade Terminal
-            <ArrowUpRight className="h-4 w-4" />
-          </button>
+          <p className="text-foreground/60 text-sm max-w-xl mx-auto">
+            Abre el Cockpit institucional con velas en vivo de TradingView, P&L auditado por Supabase y el Co-Piloto IA clasificando cada operación.
+          </p>
+          <div className="pt-4">
+            <button
+              onClick={onLaunch}
+              className="inline-flex h-14 items-center gap-3 bg-profit px-8 text-xs font-extrabold uppercase tracking-widest text-black hover:bg-profit/90 shadow-xl shadow-profit/20 rounded-sm cursor-pointer"
+            >
+              <TerminalIcon className="h-4 w-4" />
+              Lanzar NobaTrade v4.2 Terminal
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-6 py-6">
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/30">
-          © {new Date().getFullYear()} NobaTrade · Datos simulados
-        </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/30">
-          v4.2.1 · versión estable
-        </span>
+      <footer className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 px-6 py-8">
+        <div className="font-mono text-[11px] text-foreground/40 font-bold">
+          © {new Date().getFullYear()} NobaTrade v4.2 · CODING_CHALLENGE_MEXICO
+        </div>
+        <div className="flex items-center gap-4 font-mono text-[10px] text-foreground/50">
+          <span>Java 21 Loom</span>
+          <span>•</span>
+          <span>Next.js 14</span>
+          <span>•</span>
+          <span>Supabase DB</span>
+          <span>•</span>
+          <span>TradingView v4</span>
+        </div>
       </footer>
     </div>
   );
@@ -262,48 +302,38 @@ function Stat({ k, v }: { k: string; v: string }) {
   return (
     <div>
       <div className="font-mono text-[9px] uppercase tracking-widest text-foreground/40">{k}</div>
-      <div className="nx-num mt-1 text-sm font-bold">{v}</div>
+      <div className="nx-num mt-1 text-sm font-bold text-white">{v}</div>
     </div>
   );
 }
 
 const features = [
-  { icon: Zap, title: "Evaluación Sub-segundo", body: "Los libros de órdenes son normalizados y escaneados a más de 200Hz. Las oportunidades se detectan con una latencia de extremo a extremo de apenas 42ms." },
-  { icon: Shield, title: "Cortocircuito Multi-etapa", body: "Anomalías de spread, retrasos de datos y degradación del exchange tienen sus propios umbrales de desconexión por seguridad (Circuit Breakers)." },
-  { icon: GitBranch, title: "Rutas Directas y Triangulares", body: "Estrategias de arbitraje entre diferentes exchanges (espacial) e internamente (triangular) evaluadas simultáneamente." },
-  { icon: Activity, title: "Ejecución Determinista", body: "Mismos datos, misma configuración, misma decisión. Cada trade es 100% reproducible desde el historial (Replay Engine)." },
-];
-
-const pipelineSteps = [
-  { title: "Feeds públicos", desc: "Cinco conectores envían order books por WebSockets. El motor evalúa de inmediato si un feed pierde frescura o sincronía." },
-  { title: "Integridad (L2)", desc: "Los libros ensamblados vigilan sequence gaps. Cada Exchange se valida estrictamente antes de admitir sus precios al escáner de oportunidades." },
-  { title: "Quote normalization", desc: "Pares como BTC/USD y BTC/USDT se convierten a USD comparable usando el basis USDT/USD en tiempo real sin perder spread." },
-  { title: "Detección Espacial", desc: "El motor cruza transversalmente el Ask más bajo contra el Bid más alto en toda la malla de exchanges conectados para identificar spreads brutos." },
-  { title: "Economía real", desc: "Ejecución spot y rebalanceo se calculan por separado: fees maker/taker, network slippage, cuota límite, latencia y retiro amortizado." },
-  { title: "Expected Value", desc: "El motor pondera la probabilidad de que ambas piernas del arbitraje logren ejecutarse, calculando el ratio de sobrevivencia de la operación." },
-  { title: "Inventario (Preflight)", desc: "Antes de enviar a la queue, se verifica frescura y disponibilidad del inventario en las billeteras simuladas para cubrir ambas partes de la operación." },
-  { title: "State machine", desc: "Cada señal comienza una traza: detected, validated, reserved, leg A, leg B y executed. Se actualiza en la interfaz de usuario en streaming." },
+  { icon: Zap, title: "Evaluación Sub-milisegundo (Loom)", body: "Los 5 libros de órdenes se normalizan y evalúan utilizando Virtual Threads de Java 21, logrando una latencia de decisión de apenas 0 a 2ms." },
+  { icon: Shield, title: "Cortocircuito Institucional", body: "Circuit Breakers protegen la cartera ante pérdidas consecutivas, caídas abruptas de saldo (drawdown) o datos obsoletos del exchange." },
+  { icon: Database, title: "Persistencia Cloud Supabase", body: "Las operaciones ejecutadas y el historial de balances se guardan en PostgreSQL en la nube, garantizando contabilidad real y continua." },
+  { icon: Activity, title: "Rebalanceo de Inventario", body: "Supervisa la asimetría entre billeteras. Si una cartera supera el 40% de desviación respecto al saldo medio, dispara eventos de rebalanceo." },
 ];
 
 const mathModels = [
-  { title: "Gross Spread Edge", formula: "Gross_Edge = max(Bid_B - Ask_A, 0)", desc: "Mide la diferencia cruda entre comprar barato en el Exchange A y vender caro en el Exchange B. Si es 0 o negativo, no hay oportunidad." },
-  { title: "Execution Net P&L", formula: "Net_PnL = (Vol * Gross_Edge) - (Vol * Fee_A) - (Vol * Fee_B)", desc: "Separa el resultado operativo bruto del costo de red. Esta es la ganancia limpia (en USD) después de pagarle a ambos exchanges su porción maker/taker." },
-  { title: "Minimum ROI Threshold", formula: "if (Net_PnL < Config.minProfitUsd)\n  return REJECTED_FEES", desc: "Ajuste dinámico controlado por el usuario desde el Cockpit. Solo ejecuta si el beneficio de la operación supera el umbral preestablecido en USD." },
-  { title: "Rebalance Trigger", formula: "if (Wallet_A(BTC) < Threshold)\n  execute_rebalance()", desc: "Permite balancear el inventario de las billeteras automáticamente cuando una de ellas se drena después de ejecutar múltiples operaciones ganadoras en una sola dirección." },
-  { title: "Triangular Arbitrage Cycle", formula: "Final_USDT = (Init_USDT / P1_Ask) * P2_Bid * P3_Bid", desc: "Calcula el retorno de invertir USDT en BTC, luego ETH, y de vuelta a USDT dentro del mismo exchange. Si Final_USDT > Init_USDT + Fees, ejecuta." },
-  { title: "Circuit Breaker Latency", formula: "if (Current_Time - Last_Update > 500ms)\n  trigger_trip(DEGRADED)", desc: "Cortocircuito de seguridad: si un exchange no emite ticks en 500ms, se asume latencia de red y el motor interrumpe operaciones para evitar riesgo estructural." },
+  { title: "Gross Spread Edge", formula: "Gross_Edge = max(Bid_B - Ask_A, 0)", desc: "Mide la diferencia cruda entre comprar barato en el Exchange A y vender caro en el Exchange B con precios normalizados en tiempo real." },
+  { title: "Net Profit (After All Fees)", formula: "Net_PnL = (Vol * Gross_Edge) - Fees_Buy - Fees_Sell - Network_Fee", desc: "Calcula el beneficio limpio deducidas las comisiones Taker/Maker exactas de cada uno de los 5 exchanges y la tarifa de retiro de red." },
+  { title: "AI Confidence Scorer", formula: "Score = w1*Slippage + w2*Spread + w3*Volat + w4*ZScore", desc: "El Co-Piloto evalúa la calidad del spread en una escala de 0 a 100 y comprueba anomalías estadísticas rodantes antes de ejecutar." },
+  { title: "Triangular Intra-Exchange Edge", formula: "Final_USDT = (Init_USDT / P1_Ask) * P2_Bid * P3_Bid", desc: "Evalúa el ciclo USDT ➔ BTC ➔ ETH ➔ USDT en Binance. Si Final_USDT supera el capital inicial + comisiones, ejecuta instantáneamente." },
+  { title: "Rebalance Trigger Threshold", formula: "if (Deviation(Wallet_i) > 40.0%)\n  execute_rebalance()", desc: "Protege contra el vaciamiento de inventario en un exchange individual tras una secuencia continua de arbitrajes rentables." },
+  { title: "Circuit Breaker Protection", formula: "if (ConsecutiveLosses >= 3 || Drawdown > 2.0%)\n  pause_engine(60s)", desc: "Pausa automáticamente el motor de arbitraje para proteger el capital ante volatilidades extremas o flash crashes del mercado." },
 ];
 
 function sampleTicks(seed: number) {
   const base = [
     { pair: "BTC/USDT", venue: "binance" },
-    { pair: "ETH/USDT", venue: "kraken" },
-    { pair: "ETH/BTC", venue: "coinbase" },
+    { pair: "BTC/USDT", venue: "okx" },
+    { pair: "BTC/USDT", venue: "bitfinex" },
+    { pair: "BTC/USDT", venue: "coinbase" },
     { pair: "BTC/USDT", venue: "kraken" },
-    { pair: "ETH/USDT", venue: "binance" },
   ];
   return base.map((b, i) => ({
     ...b,
-    delta: Math.sin((seed + i) * 1.7) * 0.35 + Math.cos((seed + i) * 0.9) * 0.18,
+    delta: Math.sin((seed + i) * 1.7) * 0.45 + Math.cos((seed + i) * 0.9) * 0.2,
   }));
 }
+

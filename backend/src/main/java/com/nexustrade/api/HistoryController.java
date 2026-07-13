@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:3000}")
+@CrossOrigin(originPatterns = "*")
 public class HistoryController {
 
     private static final Logger log = LoggerFactory.getLogger(HistoryController.class);

@@ -23,7 +23,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/rebalancing")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:3000}")
+@CrossOrigin(originPatterns = "*")
 public class RebalancingController {
 
     private static final Logger log = LoggerFactory.getLogger(RebalancingController.class);

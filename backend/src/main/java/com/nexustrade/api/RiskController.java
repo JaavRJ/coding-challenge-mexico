@@ -17,7 +17,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/risk")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:3000}")
+@CrossOrigin(originPatterns = "*")
 public class RiskController {
 
     private static final Logger log = LoggerFactory.getLogger(RiskController.class);

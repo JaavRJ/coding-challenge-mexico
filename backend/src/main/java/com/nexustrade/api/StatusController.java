@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:3000}")
+@CrossOrigin(originPatterns = "*")
 public class StatusController {
 
     private final ConnectorRegistry registry;

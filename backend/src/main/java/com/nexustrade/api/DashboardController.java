@@ -22,7 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:3000}")
+@CrossOrigin(originPatterns = "*")
 public class DashboardController {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);

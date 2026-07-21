@@ -51,7 +51,7 @@ export function ExecutedTradesFeed({ apiBase = "http://localhost:8080" }: { apiB
   const totalExecutedPnl = trades.reduce((sum, t) => sum + (t.netProfit || 0), 0);
 
   const generateExplanation = (t: ExecutedTrade) => {
-    if (t.type === "TRIANGULAR" || t.exchange) {
+    if (t.type === "TRIANGULAR") {
       return `El Motor IA detectó un desajuste en el libro de órdenes del exchange ${t.exchange?.toUpperCase()}. Invirtiendo ${(t.startUsdt ?? 1000).toFixed(2)} USDT, adquirió ${(t.btcAmount ?? 0).toFixed(4)} BTC, permutó instantáneamente por ${(t.ethAmount ?? 0).toFixed(4)} ETH y cerró la triada en ${(t.finalUsdt ?? 0).toFixed(2)} USDT. Una operación libre de riesgo de transferencia inter-exchange que generó +${t.netProfit.toFixed(4)} USDT de utilidad líquida.`;
     } else {
       return `Divergencia capturada en milisegundos: El libro de órdenes de ${(t.buyExchange || "BINANCE").toUpperCase()} cotizó BTC a $${(t.buyPrice || 0).toLocaleString()} mientras que en ${(t.sellExchange || "KRAKEN").toUpperCase()} alcanzó $${(t.sellPrice || 0).toLocaleString()} (Margen bruto del ${(t.spreadPct || 0).toFixed(2)}%). Tras absorber $${(t.feesTotal || 0).toFixed(2)} USD en comisiones Taker/Maker e infraestructura de red, el motor aseguró una ganancia neta de +${t.netProfit.toFixed(2)} USDT con latencia en tiempo de ejecución de ${t.decisionLatencyMs || 0}ms usando Virtual Threads (Loom).`;
@@ -110,7 +110,7 @@ export function ExecutedTradesFeed({ apiBase = "http://localhost:8080" }: { apiB
       ) : (
         <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
           {trades.map((t, idx) => {
-            const isTriangular = t.type === "TRIANGULAR" || !!t.exchange;
+            const isTriangular = t.type === "TRIANGULAR";
             const dateStr = new Date(t.ts).toLocaleTimeString("es-MX", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit", fractionalSecondDigits: 2 });
 
             return (

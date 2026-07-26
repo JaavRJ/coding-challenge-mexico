@@ -205,8 +205,20 @@ public class AnalyticsController {
         return ResponseEntity.ok(response);
     }
 
+    @Value("${ANALYTICS_ENABLED:true}")
+    private boolean analyticsEnabled;
+
     @GetMapping("/analytics/performance")
     public ResponseEntity<Map<String, Object>> getPerformanceAnalytics() {
+        if (!analyticsEnabled) {
+            return ResponseEntity.ok(Map.of(
+                "pnlHistory", Collections.emptyList(),
+                "rejections", Collections.emptyMap(),
+                "totalEvaluated", 0, "totalExecuted", 0,
+                "totalRejected", 0, "currentPnl", 0.0
+            ));
+        }
+
         Map<String, Object> response = new LinkedHashMap<>();
         
         int totalRej = (int) engine.getTotalRejected();
